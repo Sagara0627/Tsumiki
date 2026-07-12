@@ -27,10 +27,12 @@
 [ホーム]     キャラ(表情+吹き出し)/ 🔥ストリーク大表示 / ❄️フリーズ所持数
              今日のミッション(チェックリスト)/ デイリーゴール進捗バー
              夜未完了時: 「今日終了まで n時間」+「あと1タスクで◯日の記録を守れる」赤バナー
-[タスク]     5領域別のタスク一覧 / 追加・編集・アーカイブ(モーダル)
+[タスク]     「つぎの一歩」(キャリアプランのおすすめ: 追加/見送る+次ステップ解放ヒント)
+             5領域別のタスク一覧 / 追加・編集・アーカイブ(モーダル)
 [きろく]     月カレンダー(達成=緑・フリーズ=青・未達=赤)/ 領域別バー / バッジ一覧 / 累計サマリ
 [せってい]   通知時刻の追加・変更(デフォルト 8:00/12:00/19:00/21:00)/ 権限案内
-             デイリーゴール / キャラ切替 / JSONエクスポート・インポート / リセット
+             デイリーゴール / キャリアプラン(目標・重点領域・自動追加)/ キャラ切替
+             JSONエクスポート・インポート / リセット
 
 [お祝いモーダル]  レベルアップ・バッジ・マイルストーン時に celebrate 表情で表示
 [タスク編集モーダル] タイトル / 領域 / XP
@@ -51,9 +53,12 @@ AppState {
   xp: number
   badges: Badge[]
   missions: { dateKey, taskIds }  // 今日のデイリーミッション
+  career: CareerPlan | null       // { goal, focusAreas[], autoAdd, dismissed[], lastAutoAddDate }
   settings: { dailyGoal, reminderTimes[], characterId }
 }
 ```
+
+- `Task.templateId?` はロードマップ由来タスクの元テンプレートID(重複リコメンド防止)
 
 - 領域は5固定: `tech / hearing / drive / negotiation / output`(色・絵文字付き、`seed.ts`)
 - 永続化: AsyncStorage 単一キー `tsumiki:state:v1`。
@@ -98,6 +103,16 @@ AppState {
 - 日付が変わって最初の起動時に、**完了数が少ない領域を優先**して各領域から
   最も実施回数の少ないタスクをラウンドロビンで `dailyGoal` 件選出
 
+### キャリアプランとロードマップ(`src/store/roadmap.ts`)
+- せっていで **目標(自由記述)+重点領域+自動追加ON/OFF** を設定すると有効化
+- 領域×3ステップ(きほん/じっせん/はってん)のタスクテンプレート30件を内蔵。
+  その領域の累計完了数でステップ解放(ステップ2=12回、ステップ3=30回)= **段階的に負荷を上げる**
+- リコメンド優先度: 重点領域 → 低いステップ → 完了数が少ない領域。
+  採用済み(`templateId` が既存タスクにある)と見送り済み(`career.dismissed`)は除外
+- タスク画面「つぎの一歩」に最大3件表示(追加/見送る)。次ステップの解放条件もヒント表示
+- 自動追加ON: `settleDay`(起動/フォアグラウンド/日付跨ぎの精算)で **1日1件まで**
+  最優先のおすすめをタスクに自動追加(`lastAutoAddDate` で冪等)
+
 ## 5. 実装状況(ここまで完了)
 
 ```
@@ -114,6 +129,7 @@ AppState {
 ✅ src/characters/CharacterView.tsx
 ✅ 依存インストール済み(Expo SDK 57, notifications/svg/view-shot/navigation ほか)
 ✅ src/store/missions.ts        デイリーミッション生成(手薄な領域優先のラウンドロビン)
+✅ src/store/roadmap.ts         キャリアプラン用ロードマップ(テンプレ30件・リコメンド・自動追加)
 ✅ src/store/AppContext.tsx     Provider(stateRef方式・お祝いキュー・debounce保存/通知同期・
                                 フォアグラウンドreconcile・30秒tick・NotificationBridge注入)
 ✅ src/characters/CharacterImageFactory.tsx  7表情をオフスクリーンでPNG化

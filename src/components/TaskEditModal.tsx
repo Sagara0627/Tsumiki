@@ -64,6 +64,7 @@ export default function TaskEditModal({ visible, task, defaultAreaId, onClose }:
       >
         <Pressable style={styles.backdropTouch} onPress={onClose} />
         <View style={styles.sheet}>
+          <View style={styles.grabber} />
           <Text style={styles.heading}>{task ? 'タスクを編集' : 'タスクを追加'}</Text>
 
           <Text style={styles.label}>タイトル</Text>
@@ -145,25 +146,32 @@ export default function TaskEditModal({ visible, task, defaultAreaId, onClose }:
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
+  backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(30, 20, 10, 0.4)' },
   backdropTouch: { flex: 1 },
   sheet: {
-    backgroundColor: colors.bg,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.card,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 20,
+    paddingTop: 12,
     paddingBottom: 36,
     gap: 6,
   },
-  heading: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 8 },
+  grabber: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.border,
+    marginBottom: 10,
+  },
+  heading: { fontSize: 20, fontWeight: '800', color: colors.text, marginBottom: 8 },
   label: { fontSize: 13, fontWeight: '700', color: colors.sub, marginTop: 10 },
   input: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.faint,
     borderRadius: radius.chip,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
     color: colors.text,
     marginTop: 4,
@@ -171,25 +179,23 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
   selectChip: {
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: colors.faint,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
   },
   selectChipText: { fontSize: 13, fontWeight: '600', color: colors.text },
   selectChipTextOn: { color: '#FFF' },
   buttonRow: { flexDirection: 'row', gap: 10, marginTop: 20 },
   button: {
     flex: 1,
-    borderRadius: radius.chip,
-    paddingVertical: 13,
+    borderRadius: radius.pill,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   buttonPrimary: { backgroundColor: colors.primary },
   buttonPrimaryText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
   buttonDisabled: { opacity: 0.4 },
-  buttonGhost: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  buttonGhost: { backgroundColor: colors.faint },
   buttonGhostText: { color: colors.text, fontSize: 15, fontWeight: '600' },
   archiveButton: { marginTop: 14, alignItems: 'center' },
   archiveText: { fontSize: 13, color: colors.sub, fontWeight: '600' },

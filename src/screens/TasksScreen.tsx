@@ -2,15 +2,16 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../store/AppContext';
-import { AREAS } from '../store/seed';
+import { AREAS, areaOf } from '../store/seed';
+import { nextUnlockHint, recommendTemplates, STAGE_INFO } from '../store/roadmap';
 import { AreaId, Task } from '../store/types';
 import { todayKey } from '../utils/date';
 import { colors, radius } from '../theme';
-import { Card } from '../components/ui';
+import { Card, CheckBlock } from '../components/ui';
 import TaskEditModal from '../components/TaskEditModal';
 
 export default function TasksScreen() {
-  const { state, now, completeTask, uncompleteTask } = useApp();
+  const { state, now, completeTask, uncompleteTask, adoptTemplate, dismissTemplate } = useApp();
   const insets = useSafeAreaInsets();
   const [showArchived, setShowArchived] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -34,9 +35,12 @@ export default function TasksScreen() {
     setEditorOpen(true);
   };
 
+  const recommendations = useMemo(() => recommendTemplates(state), [state]);
+  const unlockHint = useMemo(() => nextUnlockHint(state), [state]);
+
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <Text style={styles.heading}>タスク</Text>
           <View style={styles.archiveToggle}>
@@ -45,9 +49,72 @@ export default function TasksScreen() {
               value={showArchived}
               onValueChange={setShowArchived}
               trackColor={{ true: colors.primary }}
+              style={styles.archiveSwitch}
             />
           </View>
         </View>
+
+        {/* キャリアプランのおすすめ(段階的な「つぎの一歩」) */}
+        {state.career ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.areaTile, { backgroundColor: colors.primarySoft }]}>
+                <Text style={styles.areaEmoji}>🧭</Text>
+              </View>
+              <View style={styles.sectionText}>
+                <Text style={styles.sectionName}>つぎの一歩</Text>
+                <Text style={styles.sectionDesc}>
+                  {state.career.goal
+                    ? `「${state.career.goal}」に向けたおすすめ`
+                    : 'キャリアプランに向けたおすすめ'}
+                </Text>
+              </View>
+            </View>
+            <Card style={styles.taskCard}>
+              {recommendations.length === 0 && (
+                <Text style={styles.emptyText}>
+                  いま出せるおすすめは全部追加ずみ!
+                  {unlockHint
+                    ? ` ${areaOf(unlockHint.areaId).emoji}${areaOf(unlockHint.areaId).short} をあと${unlockHint.remaining}回完了すると、ステップ${unlockHint.nextStage}「${STAGE_INFO[unlockHint.nextStage].name}」が解放されるよ。`
+                    : ''}
+                </Text>
+              )}
+              {recommendations.map((t, i) => {
+                const area = areaOf(t.areaId);
+                const stage = STAGE_INFO[t.stage];
+                return (
+                  <View key={t.id} style={[styles.taskRow, i > 0 && styles.taskRowBorder]}>
+                    <View style={styles.taskBody}>
+                      <Text style={styles.taskTitle}>{t.title}</Text>
+                      <Text style={styles.taskMeta}>
+                        {stage.emoji} ステップ{t.stage} {stage.name} ・ {area.emoji}
+                        {area.short} ・ +{t.xp} XP
+                      </Text>
+                    </View>
+                    <Pressable style={styles.recoDismiss} onPress={() => dismissTemplate(t.id)} hitSlop={6}>
+                      <Text style={styles.recoDismissText}>見送る</Text>
+                    </Pressable>
+                    <Pressable style={styles.addButton} onPress={() => adoptTemplate(t.id)} hitSlop={6}>
+                      <Text style={styles.addButtonText}>+ 追加</Text>
+                    </Pressable>
+                  </View>
+                );
+              })}
+              {recommendations.length > 0 && unlockHint && (
+                <Text style={styles.unlockNote}>
+                  🔒 ステップ{unlockHint.nextStage}「{STAGE_INFO[unlockHint.nextStage].name}」は{' '}
+                  {areaOf(unlockHint.areaId).short} をあと{unlockHint.remaining}回完了で解放
+                </Text>
+              )}
+            </Card>
+          </View>
+        ) : (
+          <Card style={styles.planCta}>
+            <Text style={styles.planCtaText}>
+              🧭 せってい → キャリアプランで目標を設定すると、目標に向けた段階的なおすすめタスクがここに届くよ。
+            </Text>
+          </Card>
+        )}
 
         {AREAS.map((area) => {
           const tasks = state.tasks.filter(
@@ -56,15 +123,17 @@ export default function TasksScreen() {
           return (
             <View key={area.id} style={styles.section}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.areaDot, { backgroundColor: area.color }]} />
-                <Text style={styles.sectionName}>
-                  {area.emoji} {area.name}
-                </Text>
+                <View style={[styles.areaTile, { backgroundColor: `${area.color}24` }]}>
+                  <Text style={styles.areaEmoji}>{area.emoji}</Text>
+                </View>
+                <View style={styles.sectionText}>
+                  <Text style={styles.sectionName}>{area.name}</Text>
+                  <Text style={styles.sectionDesc}>{area.description}</Text>
+                </View>
                 <Pressable style={styles.addButton} onPress={() => openNew(area.id)}>
                   <Text style={styles.addButtonText}>+ 追加</Text>
                 </Pressable>
               </View>
-              <Text style={styles.sectionDesc}>{area.description}</Text>
               <Card style={styles.taskCard}>
                 {tasks.length === 0 && (
                   <Text style={styles.emptyText}>タスクなし。「+ 追加」から登録できます。</Text>
@@ -72,22 +141,15 @@ export default function TasksScreen() {
                 {tasks.map((task, i) => {
                   const done = doneTaskIds.has(task.id);
                   return (
-                    <View
-                      key={task.id}
-                      style={[styles.taskRow, i > 0 && styles.taskRowBorder]}
-                    >
+                    <View key={task.id} style={[styles.taskRow, i > 0 && styles.taskRowBorder]}>
                       <Pressable
                         onPress={() =>
                           done ? uncompleteTask(task.id) : completeTask(task.id)
                         }
                         disabled={task.archived}
-                        style={[
-                          styles.checkbox,
-                          done && { backgroundColor: colors.success, borderColor: colors.success },
-                          task.archived && styles.checkboxDisabled,
-                        ]}
+                        hitSlop={6}
                       >
-                        {done && <Text style={styles.checkmark}>✓</Text>}
+                        <CheckBlock done={done} size={26} disabled={task.archived} />
                       </Pressable>
                       <Pressable style={styles.taskBody} onPress={() => openEdit(task)}>
                         <Text
@@ -128,43 +190,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  heading: { fontSize: 22, fontWeight: '800', color: colors.text },
-  archiveToggle: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  heading: { fontSize: 28, fontWeight: '800', color: colors.text },
+  archiveToggle: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   archiveLabel: { fontSize: 12, color: colors.sub },
-  section: { marginTop: 14 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 },
-  areaDot: { width: 10, height: 10, borderRadius: 5 },
-  sectionName: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.text },
-  addButton: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  addButtonText: { fontSize: 13, fontWeight: '700', color: colors.primary },
-  sectionDesc: { fontSize: 11, color: colors.sub, marginBottom: 6, marginLeft: 18 },
-  taskCard: { paddingVertical: 4 },
-  taskRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
-  taskRowBorder: { borderTopWidth: 1, borderTopColor: colors.border },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.border,
+  archiveSwitch: { transform: [{ scale: 0.8 }] },
+  section: { marginTop: 18 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  areaTile: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxDisabled: { opacity: 0.3 },
-  checkmark: { color: '#FFF', fontSize: 14, fontWeight: '800' },
+  areaEmoji: { fontSize: 16 },
+  sectionText: { flex: 1 },
+  sectionName: { fontSize: 16, fontWeight: '700', color: colors.text },
+  sectionDesc: { fontSize: 11, color: colors.sub, marginTop: 1 },
+  addButton: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+  },
+  addButtonText: { fontSize: 13, fontWeight: '700', color: colors.primary },
+  taskCard: { paddingVertical: 6 },
+  taskRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, gap: 12 },
+  taskRowBorder: { borderTopWidth: 1, borderTopColor: colors.faint },
   taskBody: { flex: 1 },
   taskTitle: { fontSize: 14, color: colors.text, lineHeight: 19 },
   taskTitleDone: { textDecorationLine: 'line-through', color: colors.sub },
   taskTitleArchived: { color: colors.sub },
   taskMeta: { fontSize: 11, color: colors.sub, marginTop: 2 },
   emptyText: { fontSize: 13, color: colors.sub, paddingVertical: 10 },
+  recoDismiss: { paddingHorizontal: 4, paddingVertical: 7 },
+  recoDismissText: { fontSize: 12, color: colors.sub, fontWeight: '600' },
+  unlockNote: {
+    fontSize: 11,
+    color: colors.sub,
+    paddingTop: 9,
+    borderTopWidth: 1,
+    borderTopColor: colors.faint,
+  },
+  planCta: { marginTop: 14 },
+  planCtaText: { fontSize: 13, color: colors.sub, lineHeight: 19 },
 });

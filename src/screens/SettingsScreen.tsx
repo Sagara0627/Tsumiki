@@ -6,7 +6,9 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +20,8 @@ import { File, Paths } from 'expo-file-system';
 import { useApp } from '../store/AppContext';
 import { CHARACTERS } from '../characters';
 import CharacterView from '../characters/CharacterView';
-import { CharacterId } from '../store/types';
+import { AreaId, CharacterId } from '../store/types';
+import { AREAS } from '../store/seed';
 import { hasPermission, openSystemSettings, requestPermission } from '../notifications/notifications';
 import { formatHM, todayKey } from '../utils/date';
 import { colors, radius } from '../theme';
@@ -28,6 +31,7 @@ export default function SettingsScreen() {
   const {
     state,
     setDailyGoal,
+    setCareerPlan,
     setCharacter,
     addReminderTime,
     updateReminderTime,
@@ -61,6 +65,48 @@ export default function SettingsScreen() {
   }, []);
 
   const pickerTarget = state.settings.reminderTimes.find((r) => r.id === pickerFor) ?? null;
+
+  // ---- キャリアプラン ----
+  const career = state.career;
+  const [goalDraft, setGoalDraft] = useState(career?.goal ?? '');
+  useEffect(() => {
+    setGoalDraft(career?.goal ?? '');
+  }, [career?.goal]);
+
+  const commitGoal = useCallback(() => {
+    if (!career) return;
+    setCareerPlan({ goal: goalDraft, focusAreas: career.focusAreas, autoAdd: career.autoAdd });
+  }, [career, goalDraft, setCareerPlan]);
+
+  const toggleFocusArea = useCallback(
+    (id: AreaId) => {
+      if (!career) return;
+      const focusAreas = career.focusAreas.includes(id)
+        ? career.focusAreas.filter((a) => a !== id)
+        : [...career.focusAreas, id];
+      setCareerPlan({ goal: career.goal, focusAreas, autoAdd: career.autoAdd });
+    },
+    [career, setCareerPlan]
+  );
+
+  const setAutoAdd = useCallback(
+    (autoAdd: boolean) => {
+      if (!career) return;
+      setCareerPlan({ goal: career.goal, focusAreas: career.focusAreas, autoAdd });
+    },
+    [career, setCareerPlan]
+  );
+
+  const confirmDeletePlan = useCallback(() => {
+    Alert.alert(
+      'キャリアプランを削除',
+      'おすすめの表示が止まります(追加ずみのタスクはそのまま残ります)。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        { text: '削除する', style: 'destructive', onPress: () => setCareerPlan(null) },
+      ]
+    );
+  }, [setCareerPlan]);
 
   const onPickTime = useCallback(
     (event: DateTimePickerEvent, date?: Date) => {
@@ -147,7 +193,7 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
     >
       <Text style={styles.heading}>せってい</Text>
 
@@ -202,6 +248,69 @@ export default function SettingsScreen() {
           </View>
         </View>
         <Text style={styles.note}>ストリーク自体は1日1タスクでつながります。</Text>
+      </Card>
+
+      {/* キャリアプラン */}
+      <SectionTitle>キャリアプラン</SectionTitle>
+      <Card style={styles.cardGap}>
+        {!career ? (
+          <>
+            <Text style={styles.note}>
+              目指す姿を設定すると、タスク画面に目標へ向けた段階的なおすすめ(ステップ1→3)が届きます。
+            </Text>
+            <SettingButton
+              label="🧭 目標を設定する"
+              onPress={() => setCareerPlan({ goal: '', focusAreas: [], autoAdd: false })}
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.fieldLabel}>目指す姿</Text>
+            <TextInput
+              style={styles.goalInput}
+              value={goalDraft}
+              onChangeText={setGoalDraft}
+              onBlur={commitGoal}
+              placeholder="例: 3年でテックリードになる"
+              placeholderTextColor={colors.sub}
+              returnKeyType="done"
+            />
+            <Text style={styles.fieldLabel}>重点領域(おすすめで優先されます)</Text>
+            <View style={styles.areaChipRow}>
+              {AREAS.map((a) => {
+                const on = career.focusAreas.includes(a.id);
+                return (
+                  <Pressable
+                    key={a.id}
+                    style={[
+                      styles.areaChip,
+                      on && { backgroundColor: `${a.color}24`, borderColor: a.color },
+                    ]}
+                    onPress={() => toggleFocusArea(a.id)}
+                  >
+                    <Text style={[styles.areaChipText, on && styles.areaChipTextOn]}>
+                      {a.emoji} {a.short}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View style={styles.goalRow}>
+              <Text style={styles.goalLabel}>おすすめを1日1件自動で追加</Text>
+              <Switch
+                value={career.autoAdd}
+                onValueChange={setAutoAdd}
+                trackColor={{ true: colors.primary }}
+              />
+            </View>
+            <Text style={styles.note}>
+              完了を重ねると領域ごとにステップ2・3のタスクが解放されます。おすすめの「見送る」はいつでもやり直せます(プランを作り直すと復活)。
+            </Text>
+            <Pressable onPress={confirmDeletePlan} hitSlop={6}>
+              <Text style={styles.removeText}>プランを削除</Text>
+            </Pressable>
+          </>
+        )}
       </Card>
 
       {/* キャラクター */}
@@ -311,7 +420,7 @@ function SettingButton({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32, gap: 12 },
-  heading: { fontSize: 22, fontWeight: '800', color: colors.text },
+  heading: { fontSize: 28, fontWeight: '800', color: colors.text },
   cardGap: { gap: 10 },
   permBanner: {
     backgroundColor: colors.dangerBg,
@@ -321,19 +430,42 @@ const styles = StyleSheet.create({
   permText: { fontSize: 13, color: colors.danger, lineHeight: 18 },
   reminderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   timeButton: {
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.chip,
+    backgroundColor: colors.faint,
+    borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   timeText: { fontSize: 17, fontWeight: '700', color: colors.text, fontVariant: ['tabular-nums'] },
   reminderHint: { flex: 1, fontSize: 12, color: colors.sub },
   removeText: { fontSize: 13, color: colors.danger, fontWeight: '600' },
-  addTimeButton: { alignSelf: 'flex-start' },
-  addTimeText: { fontSize: 14, fontWeight: '700', color: colors.primary },
+  addTimeButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+  },
+  addTimeText: { fontSize: 13, fontWeight: '700', color: colors.primary },
   note: { fontSize: 11, color: colors.sub, lineHeight: 16 },
+  fieldLabel: { fontSize: 12, fontWeight: '700', color: colors.sub },
+  goalInput: {
+    backgroundColor: colors.faint,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontSize: 14,
+    color: colors.text,
+  },
+  areaChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  areaChip: {
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+  },
+  areaChipText: { fontSize: 12, color: colors.sub, fontWeight: '600' },
+  areaChipTextOn: { color: colors.text, fontWeight: '700' },
   goalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -343,21 +475,26 @@ const styles = StyleSheet.create({
   goalLabel: { fontSize: 14, color: colors.text },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   stepButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.faint,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepText: { fontSize: 18, fontWeight: '700', color: colors.primary },
-  goalValue: { fontSize: 18, fontWeight: '800', color: colors.text, minWidth: 24, textAlign: 'center' },
+  goalValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+    minWidth: 24,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
+  },
   charRow: { flexDirection: 'row', gap: 10 },
   charOption: {
     flex: 1,
-    borderRadius: radius.card,
+    borderRadius: 20,
     borderWidth: 3,
     borderColor: 'transparent',
     alignItems: 'center',
@@ -367,15 +504,13 @@ const styles = StyleSheet.create({
   charOptionName: { fontSize: 14, fontWeight: '700', color: colors.text },
   charOptionTitle: { fontSize: 10, color: colors.sub },
   settingButton: {
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.faint,
     borderRadius: radius.chip,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 15,
   },
   settingButtonText: { fontSize: 14, fontWeight: '600', color: colors.text },
-  settingButtonDanger: { backgroundColor: colors.dangerBg, borderColor: colors.danger },
+  settingButtonDanger: { backgroundColor: colors.dangerBg },
   settingButtonTextDanger: { color: colors.danger },
   pickerBackdrop: {
     flex: 1,
@@ -384,15 +519,15 @@ const styles = StyleSheet.create({
   },
   pickerSheet: {
     backgroundColor: colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     padding: 16,
     paddingBottom: 32,
   },
   pickerDone: {
     backgroundColor: colors.primary,
-    borderRadius: radius.chip,
-    paddingVertical: 12,
+    borderRadius: radius.pill,
+    paddingVertical: 13,
     alignItems: 'center',
   },
   pickerDoneText: { color: '#FFF', fontSize: 15, fontWeight: '700' },

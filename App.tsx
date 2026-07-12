@@ -13,11 +13,12 @@ import {
 } from './src/notifications/notifications';
 import CharacterImageFactory from './src/characters/CharacterImageFactory';
 import CelebrationModal from './src/components/CelebrationModal';
+import { CalendarIcon, HomeIcon, SettingsIcon, TasksIcon } from './src/components/icons';
 import HomeScreen from './src/screens/HomeScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import RecordsScreen from './src/screens/RecordsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
-import { colors } from './src/theme';
+import { colors, font, shadow } from './src/theme';
 
 // store 層 → 通知層の橋渡し(モジュール読み込み時に一度だけ)
 configureNotificationHandler();
@@ -28,8 +29,22 @@ registerNotificationBridge({
 
 const Tab = createBottomTabNavigator();
 
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={[styles.tabIcon, !focused && styles.tabIconOff]}>{emoji}</Text>;
+type IconComponent = typeof HomeIcon;
+
+function TabIcon({
+  Icon,
+  color,
+  focused,
+}: {
+  Icon: IconComponent;
+  color: string;
+  focused: boolean;
+}) {
+  return (
+    <View style={[styles.tabIconWrap, focused && styles.tabIconWrapOn]}>
+      <Icon color={color} focused={focused} />
+    </View>
+  );
 }
 
 function Root() {
@@ -48,6 +63,11 @@ function Root() {
   if (!ready) {
     return (
       <View style={styles.loading}>
+        <View style={styles.loadingBlocks}>
+          <View style={[styles.loadingBlock, { backgroundColor: '#7BC96F' }]} />
+          <View style={[styles.loadingBlock, { backgroundColor: colors.primary }]} />
+          <View style={[styles.loadingBlock, { backgroundColor: colors.freeze }]} />
+        </View>
         <Text style={styles.loadingText}>つみあげ中…</Text>
       </View>
     );
@@ -61,28 +81,49 @@ function Root() {
             headerShown: false,
             tabBarActiveTintColor: colors.primary,
             tabBarInactiveTintColor: colors.sub,
-            tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
+            tabBarLabelStyle: { fontSize: 11, fontWeight: '700' },
+            tabBarStyle: {
+              backgroundColor: colors.card,
+              borderTopWidth: 0,
+              ...shadow.float,
+            },
           }}
         >
           <Tab.Screen
             name="ホーム"
             component={HomeScreen}
-            options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} /> }}
+            options={{
+              tabBarIcon: ({ focused, color }) => (
+                <TabIcon Icon={HomeIcon} color={color} focused={focused} />
+              ),
+            }}
           />
           <Tab.Screen
             name="タスク"
             component={TasksScreen}
-            options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="✅" focused={focused} /> }}
+            options={{
+              tabBarIcon: ({ focused, color }) => (
+                <TabIcon Icon={TasksIcon} color={color} focused={focused} />
+              ),
+            }}
           />
           <Tab.Screen
             name="きろく"
             component={RecordsScreen}
-            options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="📅" focused={focused} /> }}
+            options={{
+              tabBarIcon: ({ focused, color }) => (
+                <TabIcon Icon={CalendarIcon} color={color} focused={focused} />
+              ),
+            }}
           />
           <Tab.Screen
             name="せってい"
             component={SettingsScreen}
-            options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="⚙️" focused={focused} /> }}
+            options={{
+              tabBarIcon: ({ focused, color }) => (
+                <TabIcon Icon={SettingsIcon} color={color} focused={focused} />
+              ),
+            }}
           />
         </Tab.Navigator>
       </NavigationContainer>
@@ -105,13 +146,20 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  tabIcon: { fontSize: 22 },
-  tabIconOff: { opacity: 0.45 },
+  tabIconWrap: {
+    paddingHorizontal: 16,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  tabIconWrapOn: { backgroundColor: colors.primarySoft },
   loading: {
     flex: 1,
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 14,
   },
-  loadingText: { fontSize: 15, color: colors.sub },
+  loadingBlocks: { flexDirection: 'row', gap: 6 },
+  loadingBlock: { width: 16, height: 16, borderRadius: 5 },
+  loadingText: { fontSize: 15, color: colors.sub, fontFamily: font.rounded },
 });

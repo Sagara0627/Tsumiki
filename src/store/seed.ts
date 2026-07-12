@@ -77,7 +77,7 @@ export function seedTasks(): Task[] {
 
 export function initialState(): AppState {
   return {
-    version: 1,
+    version: 2,
     createdAt: new Date().toISOString(),
     tasks: seedTasks(),
     logs: [],
@@ -88,6 +88,7 @@ export function initialState(): AppState {
     xp: 0,
     badges: [],
     missions: { dateKey: '', taskIds: [] },
+    career: null,
     settings: {
       dailyGoal: 3,
       reminderTimes: [

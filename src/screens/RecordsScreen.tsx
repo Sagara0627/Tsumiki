@@ -47,11 +47,11 @@ export default function RecordsScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
     >
       <Text style={styles.heading}>きろく</Text>
 
-      {/* 月カレンダー */}
+      {/* 月カレンダー(1日=1ブロック) */}
       <Card>
         <View style={styles.calHeader}>
           <Pressable style={styles.calNav} onPress={() => moveMonth(-1)}>
@@ -82,7 +82,7 @@ export default function RecordsScreen() {
               <View key={key} style={styles.calCell}>
                 <View
                   style={[
-                    styles.dayCircle,
+                    styles.dayBlock,
                     done && { backgroundColor: colors.success },
                     isFrozen && { backgroundColor: colors.freeze },
                     missed && { backgroundColor: colors.dangerBg },
@@ -120,7 +120,7 @@ export default function RecordsScreen() {
               {a.emoji} {a.short}
             </Text>
             <View style={styles.areaBar}>
-              <ProgressBar ratio={perArea[a.id] / maxArea} color={a.color} height={12} />
+              <ProgressBar ratio={perArea[a.id] / maxArea} color={a.color} height={10} />
             </View>
             <Text style={styles.areaCount}>{perArea[a.id]}</Text>
           </View>
@@ -167,7 +167,7 @@ function Legend({ color, label, border }: { color: string; label: string; border
     <View style={styles.legend}>
       <View
         style={[
-          styles.legendDot,
+          styles.legendBlock,
           { backgroundColor: color },
           border && { borderWidth: 1, borderColor: colors.danger },
         ]}
@@ -189,15 +189,22 @@ function Stat({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32, gap: 12 },
-  heading: { fontSize: 22, fontWeight: '800', color: colors.text },
+  heading: { fontSize: 28, fontWeight: '800', color: colors.text },
   calHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  calNav: { paddingHorizontal: 16, paddingVertical: 4 },
-  calNavText: { fontSize: 24, color: colors.primary, fontWeight: '700' },
+  calNav: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: colors.faint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calNavText: { fontSize: 20, color: colors.primary, fontWeight: '700', marginTop: -2 },
   calTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   calCell: {
@@ -207,44 +214,54 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   calWeekday: { fontSize: 11, color: colors.sub, fontWeight: '600' },
-  dayCircle: {
+  dayBlock: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dayToday: { borderWidth: 2, borderColor: colors.primary },
-  dayText: { fontSize: 13, color: colors.text },
+  dayText: { fontSize: 13, color: colors.text, fontVariant: ['tabular-nums'] },
   dayTextOn: { color: '#FFF', fontWeight: '700' },
   dayTextOut: { color: colors.border },
-  legendRow: { flexDirection: 'row', gap: 14, marginTop: 10, justifyContent: 'center' },
+  legendRow: { flexDirection: 'row', gap: 14, marginTop: 12, justifyContent: 'center' },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendDot: { width: 12, height: 12, borderRadius: 6 },
+  legendBlock: { width: 12, height: 12, borderRadius: 4 },
   legendText: { fontSize: 11, color: colors.sub },
-  areaCard: { gap: 10 },
+  areaCard: { gap: 12 },
   areaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   areaLabel: { width: 96, fontSize: 13, color: colors.text },
   areaBar: { flex: 1 },
-  areaCount: { width: 32, fontSize: 13, fontWeight: '700', color: colors.text, textAlign: 'right' },
+  areaCount: {
+    width: 32,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'right',
+    fontVariant: ['tabular-nums'],
+  },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   badge: {
     width: '30.5%',
-    backgroundColor: colors.bg,
-    borderRadius: radius.chip,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 8,
+    backgroundColor: colors.faint,
+    borderRadius: 16,
+    padding: 10,
     alignItems: 'center',
     gap: 2,
   },
-  badgeLocked: { opacity: 0.55 },
+  badgeLocked: { opacity: 0.45 },
   badgeEmoji: { fontSize: 24 },
   badgeName: { fontSize: 11, fontWeight: '700', color: colors.text, textAlign: 'center' },
   badgeNameLocked: { color: colors.sub },
   badgeDesc: { fontSize: 9, color: colors.sub, textAlign: 'center' },
-  statGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14 },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 16 },
   stat: { width: '33.3%', alignItems: 'center' },
-  statValue: { fontSize: 17, fontWeight: '800', color: colors.text },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+    fontVariant: ['tabular-nums'],
+  },
   statLabel: { fontSize: 11, color: colors.sub, marginTop: 2 },
 });

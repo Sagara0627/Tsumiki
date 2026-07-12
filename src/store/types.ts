@@ -18,6 +18,24 @@ export interface Task {
   xp: number;
   archived: boolean;
   createdAt: string; // ISO
+  /** ロードマップ由来のタスクは元テンプレートID(重複リコメンド防止) */
+  templateId?: string;
+}
+
+/** ロードマップの段階(ステップ1=きほん → 3=はってん) */
+export type RoadmapStage = 1 | 2 | 3;
+
+export interface CareerPlan {
+  /** 目指す姿(自由記述。例:「3年でテックリードになる」) */
+  goal: string;
+  /** 重点領域(リコメンドで優先される) */
+  focusAreas: AreaId[];
+  /** おすすめタスクを1日1件まで自動でタスクに追加する */
+  autoAdd: boolean;
+  /** 見送ったテンプレートID(再リコメンドしない) */
+  dismissed: string[];
+  /** 最後に自動追加した日(YYYY-MM-DD)。1日1件の上限管理 */
+  lastAutoAddDate: string | null;
 }
 
 export interface CompletionLog {
@@ -48,7 +66,8 @@ export interface Settings {
 }
 
 export interface AppState {
-  version: 1;
+  /** スキーマ版。v2: キャリアプラン(docs/career-roadmap.md)を初期投入済み */
+  version: 2;
   createdAt: string; // 利用開始日(ISO)。カレンダーの「未達」表示の起点
   tasks: Task[];
   logs: CompletionLog[];
@@ -64,6 +83,8 @@ export interface AppState {
   badges: Badge[];
   /** 今日のデイリーミッション */
   missions: { dateKey: string; taskIds: string[] };
+  /** キャリアプラン(未設定なら null。設定するとロードマップのおすすめが有効になる) */
+  career: CareerPlan | null;
   settings: Settings;
 }
 

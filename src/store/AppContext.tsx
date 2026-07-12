@@ -9,11 +9,12 @@ import React, {
 } from 'react';
 // RN の AppState はアプリ状態(active/background)。データモデルの AppState と衝突するため別名にする
 import { AppState as RNAppState } from 'react-native';
-import { AppState, AreaId, Celebration, CharacterId, Task } from './types';
+import { AppState, AreaId, CareerPlan, Celebration, CharacterId, Task } from './types';
 import { initialState } from './seed';
 import { loadState, saveState, clearState, serialize, parseImport } from './storage';
 import { completionsOn, currentStreak, reconcile, MAX_FREEZES, STREAK_MILESTONES } from './streak';
 import { ensureMissions } from './missions';
+import { applyCareerPlan, autoAddFromRoadmap, taskFromTemplate, templateOf } from './roadmap';
 import { levelFromXp, newlyEarnedBadges } from './xp';
 import { getCharacter } from '../characters';
 import { genId } from '../utils/id';
@@ -48,6 +49,10 @@ export interface AppApi {
   updateTask(taskId: string, patch: Partial<Pick<Task, 'areaId' | 'title' | 'xp'>>): void;
   archiveTask(taskId: string, archived: boolean): void;
 
+  setCareerPlan(plan: Pick<CareerPlan, 'goal' | 'focusAreas' | 'autoAdd'> | null): void;
+  adoptTemplate(templateId: string): void;
+  dismissTemplate(templateId: string): void;
+
   setDailyGoal(goal: number): void;
   setCharacter(id: CharacterId): void;
   addReminderTime(hour: number, minute: number): void;
@@ -67,6 +72,11 @@ export function useApp(): AppApi {
   const api = useContext(AppContext);
   if (!api) throw new Error('useApp は AppProvider の内側で使ってください');
   return api;
+}
+
+/** 日次精算: 空白日の精算 → ロードマップの自動追加(1日1件) → 今日のミッション生成 */
+function settleDay(s: AppState, d: Date): AppState {
+  return ensureMissions(autoAddFromRoadmap(reconcile(s, d), d), d);
 }
 
 const SAVE_DEBOUNCE_MS = 500;
@@ -121,10 +131,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const loaded = (await loadState()) ?? initialState();
+      // 新規インストール時はキャリアプラン(docs/career-roadmap.md)を投入した状態から始める
+      const loaded = (await loadState()) ?? applyCareerPlan(initialState());
       if (cancelled) return;
       const d = new Date();
-      const settled = ensureMissions(reconcile(loaded, d), d);
+      const settled = settleDay(loaded, d);
       stateRef.current = settled;
       setState(settled);
       setReady(true);
@@ -142,7 +153,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (status !== 'active') return;
       const d = new Date();
       setNow(d);
-      mutate((s) => ensureMissions(reconcile(s, d), d));
+      mutate((s) => settleDay(s, d));
     });
     return () => sub.remove();
   }, [mutate]);
@@ -153,7 +164,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const d = new Date();
       setNow(d);
       if (stateRef.current.missions.dateKey !== todayKey(d)) {
-        mutate((s) => ensureMissions(reconcile(s, d), d));
+        mutate((s) => settleDay(s, d));
       }
     }, TICK_MS);
     return () => clearInterval(timer);
@@ -311,6 +322,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [mutate]
   );
 
+  // ---- キャリアプラン ----
+  const setCareerPlan = useCallback(
+    (plan: Pick<CareerPlan, 'goal' | 'focusAreas' | 'autoAdd'> | null) => {
+      const d = new Date();
+      mutate((s) => {
+        if (!plan) return { ...s, career: null };
+        // 見送り履歴と自動追加日は既存プランから引き継ぐ
+        const next: AppState = {
+          ...s,
+          career: {
+            goal: plan.goal.trim(),
+            focusAreas: plan.focusAreas,
+            autoAdd: plan.autoAdd,
+            dismissed: s.career?.dismissed ?? [],
+            lastAutoAddDate: s.career?.lastAutoAddDate ?? null,
+          },
+        };
+        // 自動追加をONにしたら、その場で今日の1件を追加して手応えを返す
+        return autoAddFromRoadmap(next, d);
+      });
+    },
+    [mutate]
+  );
+
+  const adoptTemplate = useCallback(
+    (templateId: string) => {
+      mutate((s) => {
+        const template = templateOf(templateId);
+        if (!template || s.tasks.some((t) => t.templateId === templateId)) return s;
+        return {
+          ...s,
+          tasks: [...s.tasks, taskFromTemplate(template)],
+          career: s.career
+            ? { ...s.career, dismissed: s.career.dismissed.filter((id) => id !== templateId) }
+            : s.career,
+        };
+      });
+    },
+    [mutate]
+  );
+
+  const dismissTemplate = useCallback(
+    (templateId: string) => {
+      mutate((s) => {
+        if (!s.career || s.career.dismissed.includes(templateId)) return s;
+        return { ...s, career: { ...s.career, dismissed: [...s.career.dismissed, templateId] } };
+      });
+    },
+    [mutate]
+  );
+
   // ---- 設定 ----
   const setDailyGoal = useCallback(
     (goal: number) => {
@@ -377,7 +439,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (json: string) => {
       const imported = parseImport(json); // 不正なら throw
       const d = new Date();
-      mutate(() => ensureMissions(reconcile(imported, d), d));
+      mutate(() => settleDay(imported, d));
     },
     [mutate]
   );
@@ -408,6 +470,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addTask,
       updateTask,
       archiveTask,
+      setCareerPlan,
+      adoptTemplate,
+      dismissTemplate,
       setDailyGoal,
       setCharacter,
       addReminderTime,
@@ -428,6 +493,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addTask,
       updateTask,
       archiveTask,
+      setCareerPlan,
+      adoptTemplate,
+      dismissTemplate,
       setDailyGoal,
       setCharacter,
       addReminderTime,
