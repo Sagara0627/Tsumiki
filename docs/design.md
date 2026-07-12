@@ -79,7 +79,7 @@ AppState {
 - レベルn→n+1 に必要XP = `80 + (n-1)*40`(序盤は軽く)
 - バッジ17種: 継続(3〜100日)/累計(10〜300)/全領域制覇/バランス型/ゴール7日/レベル到達
 
-### 通知(`src/notifications/` 未実装・設計確定)
+### 通知(`src/notifications/` 実装済み)
 - expo-notifications ローカル通知。**繰り返しトリガーではなく「今後7日ぶんを都度スケジュール」方式**
   (今日完了済みなら今日の残り通知をスキップできる=Duolingo的な出し分けの要)
 - 再スケジュール契機: 起動時 / タスク完了時 / 設定変更時(全キャンセル→再登録。7日×4回=28件 < iOS上限64)
@@ -113,20 +113,23 @@ AppState {
 ✅ src/characters/index.ts     差し替え1か所(DEFAULT_CHARACTER_ID)
 ✅ src/characters/CharacterView.tsx
 ✅ 依存インストール済み(Expo SDK 57, notifications/svg/view-shot/navigation ほか)
+✅ src/store/missions.ts        デイリーミッション生成(手薄な領域優先のラウンドロビン)
+✅ src/store/AppContext.tsx     Provider(stateRef方式・お祝いキュー・debounce保存/通知同期・
+                                フォアグラウンドreconcile・30秒tick・NotificationBridge注入)
+✅ src/characters/CharacterImageFactory.tsx  7表情をオフスクリーンでPNG化
+✅ src/notifications/           notifications.ts(7日分スケジュール・称賛通知・権限)+
+                                characterImages.ts(PNGキャッシュ・添付用コピー)
+✅ src/screens/                 ホーム/タスク/きろく/せってい
+✅ src/components/              CelebrationModal / TaskEditModal / 共通UI
+✅ App.tsx                      タブ4画面+ブリッジ接続+起動時権限リクエスト
+✅ assets/character/icon-*.svg + scripts/make-icon.mjs(npm run icon <キャラ名>)
+✅ README.md / npx tsc --noEmit 通過
 ```
 
-## 6. 残タスク(再開時はこの順で)
+## 6. 残タスク
 
-1. `src/store/AppContext.tsx` — Provider。stateRef 方式で completeTask/uncompleteTask/
-   addTask/updateTask/archiveTask/設定変更/export・import/resetAll/celebrations キュー。
-   保存はdebounce 500ms、通知再同期はdebounce 1.5s、RN `AppState`(名前衝突注意→ `RNAppState`)で
-   フォアグラウンド時 `reconcile`+ミッション再生成+30秒tick(`now`)
-2. `src/characters/CharacterImageFactory.tsx` — オフスクリーンで7表情を captureRef→PNG保存
-3. `src/notifications/notifications.ts` — 上記設計の syncReminders / sendCelebration / 権限まわり
-4. 画面4つ+`CelebrationModal`+`TaskEditModal`+`App.tsx`(タブ: 絵文字アイコンで依存追加なし)
-5. `assets/character/icon-*.svg` + sharp で `assets/icon.png` 書き出し(`npm run icon -- mame`)
-6. `npx tsc --noEmit` で型検証
-7. README(セットアップ、iOS実機: `npx expo start`→Expo Go / 確実なのは `npx expo run:ios --device`)
+初期実装はすべて完了。実機(`npx expo run:ios --device`)での動作確認と、
+使ってみた上での調整(通知文言・XPバランス等)が次のステップ。
 
 ## 7. 拡張アイデア(実装後の候補)
 
