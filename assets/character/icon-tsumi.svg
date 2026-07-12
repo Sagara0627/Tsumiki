@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- ツミ(つみきの守り人)アプリアイコン。「npm run icon tsumi」で assets/icon.png に書き出す -->
+  <rect width="1024" height="1024" fill="#FBF1DC"/>
+  <g transform="translate(92 112) scale(4.2)">
+    <!-- 腕 -->
+    <ellipse cx="40" cy="130" rx="9" ry="15" fill="#E8C99B" stroke="#59422F" stroke-width="3.5" transform="rotate(-15 40 130)"/>
+    <ellipse cx="160" cy="130" rx="9" ry="15" fill="#E8C99B" stroke="#59422F" stroke-width="3.5" transform="rotate(15 160 130)"/>
+    <!-- 足 -->
+    <rect x="66" y="168" width="26" height="16" rx="8" fill="#E8C99B" stroke="#59422F" stroke-width="3.5"/>
+    <rect x="108" y="168" width="26" height="16" rx="8" fill="#E8C99B" stroke="#59422F" stroke-width="3.5"/>
+    <!-- 体(角丸の木ブロック) -->
+    <rect x="45" y="70" width="110" height="102" rx="24" fill="#E8C99B" stroke="#59422F" stroke-width="5"/>
+    <!-- 顔パネル -->
+    <rect x="58" y="84" width="84" height="74" rx="18" fill="#F7E8CF"/>
+    <!-- 木目 -->
+    <path d="M52 152 q8 -6 16 0" stroke="#59422F" stroke-width="2" fill="none" opacity="0.35"/>
+    <path d="M136 78 q8 4 14 -2" stroke="#59422F" stroke-width="2" fill="none" opacity="0.35"/>
+    <!-- 頬 -->
+    <circle cx="70" cy="126" r="6" fill="#F0A98F" opacity="0.85"/>
+    <circle cx="130" cy="126" r="6" fill="#F0A98F" opacity="0.85"/>
+    <!-- 頭上のつみき -->
+    <rect x="70" y="38" width="60" height="24" rx="6" fill="#5B8DEF" stroke="#59422F" stroke-width="3.5"/>
+    <rect x="79" y="16" width="42" height="20" rx="6" fill="#F2994A" stroke="#59422F" stroke-width="3.5"/>
+    <rect x="85" y="-4" width="30" height="17" rx="5" fill="#6FCF97" stroke="#59422F" stroke-width="3"/>
+    <!-- 顔(proud) -->
+    <path d="M74 113 Q82 104 90 113" stroke="#59422F" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M110 113 Q118 104 126 113" stroke="#59422F" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M90 130 Q100 140 110 130" stroke="#59422F" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>

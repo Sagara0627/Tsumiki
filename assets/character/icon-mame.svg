@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- マメ(芽吹きの妖精)アプリアイコン。「npm run icon mame」で assets/icon.png に書き出す -->
+  <rect width="1024" height="1024" fill="#EFF8EA"/>
+  <g transform="translate(92 112) scale(4.2)">
+    <!-- 腕 -->
+    <ellipse cx="44" cy="128" rx="9" ry="14" fill="#7BC96F" stroke="#5BA854" stroke-width="3" transform="rotate(-20 44 128)"/>
+    <ellipse cx="156" cy="128" rx="9" ry="14" fill="#7BC96F" stroke="#5BA854" stroke-width="3" transform="rotate(20 156 128)"/>
+    <!-- 足 -->
+    <ellipse cx="80" cy="181" rx="13" ry="8" fill="#7BC96F" stroke="#5BA854" stroke-width="3"/>
+    <ellipse cx="120" cy="181" rx="13" ry="8" fill="#7BC96F" stroke="#5BA854" stroke-width="3"/>
+    <!-- 体 -->
+    <path d="M100 42 C138 42 162 78 160 118 C158 158 132 180 100 180 C68 180 42 158 40 118 C38 78 62 42 100 42 Z" fill="#F6EDD6" stroke="#4A3B32" stroke-width="5"/>
+    <ellipse cx="100" cy="140" rx="36" ry="26" fill="#FCF7E8"/>
+    <!-- 頬 -->
+    <circle cx="64" cy="110" r="7" fill="#F5B8B8" opacity="0.85"/>
+    <circle cx="136" cy="110" r="7" fill="#F5B8B8" opacity="0.85"/>
+    <!-- 双葉 -->
+    <path d="M100 44 C100 34 100 28 100 20" stroke="#5BA854" stroke-width="6" stroke-linecap="round" fill="none"/>
+    <ellipse cx="82" cy="16" rx="17" ry="10" fill="#7BC96F" stroke="#5BA854" stroke-width="3" transform="rotate(-24 82 16)"/>
+    <ellipse cx="118" cy="16" rx="17" ry="10" fill="#7BC96F" stroke="#5BA854" stroke-width="3" transform="rotate(24 118 16)"/>
+    <!-- 顔(proud) -->
+    <path d="M70 96 Q78 86 86 96" stroke="#4A3B32" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M114 96 Q122 86 130 96" stroke="#4A3B32" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M88 113 Q100 125 112 113" stroke="#4A3B32" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M46 62 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 Z" fill="#F5B301"/>
+    <path d="M154 78 l2.4 6 6 2.4 -6 2.4 -2.4 6 -2.4 -6 -6 -2.4 6 -2.4 Z" fill="#F5B301"/>
+  </g>
+</svg>
