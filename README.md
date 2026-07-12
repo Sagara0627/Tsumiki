@@ -25,12 +25,26 @@ npx expo start
 ### iOS 実機で動かす
 
 - **手軽**: `npx expo start` → iPhone の Expo Go でQRコードを読み取る
-  (Expo Go はローカル通知の一部機能に制限あり)
-- **確実**(通知・アイコン含めフル機能): 開発ビルドを実機にインストール
+  (Expo Go はローカル通知の一部機能に制限あり。開発サーバ起動中のみ動作)
+- **日常使い**(通知・アイコン含めフル機能、Mac なしで単体動作): 無料 Apple ID で Release ビルドを実機にインストール
 
 ```bash
-npx expo run:ios --device
+npx expo run:ios --device --configuration Release
 ```
+
+初回のみの設定:
+
+1. Xcode → Settings → Accounts に Apple ID を追加(無料アカウントで可)
+2. iPhone を USB で Mac に接続し「このコンピュータを信頼」
+3. 上記コマンドを実行 → デバイスを選択、署名チームは「(Personal Team)」を選ぶ
+4. 求められたら iPhone の 設定 → プライバシーとセキュリティ → デベロッパモード をオンにして再起動
+5. アプリが開けない場合は 設定 → 一般 → VPN とデバイス管理 → 自分の Apple ID を「信頼」
+
+運用上の注意:
+
+- 無料 Apple ID の署名は **7日で失効**する。週1回 iPhone を繋いで同じコマンドで上書き更新すればよい
+- データは AsyncStorage 保存のため、上書きインストールや署名失効では**消えない**(再署名すれば復活)
+- Bundle ID は `com.yuyasagara.tsumiki`([app.json](app.json))。無料署名では一意な ID が必要なため既定値から変更済み
 
 ## キャラクターの切り替え
 
