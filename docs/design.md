@@ -24,9 +24,9 @@
 ボトムタブ4画面+モーダル2種:
 
 ```
-[ホーム]     キャラ(表情+吹き出し)/ 🔥ストリーク大表示 / ❄️フリーズ所持数
-             今日のミッション(チェックリスト)/ デイリーゴール進捗バー
-             夜未完了時: 「今日終了まで n時間」+「あと1タスクで◯日の記録を守れる」赤バナー
+[ホーム]     キャラ(表情+吹き出し+常時アニメーション)/ 🔥ストリーク大表示 / ❄️フリーズ所持数
+             今日のミッション(デイリーゴール進捗と一体のチェックリスト)
+             夜未完了時: 「あと n時間」+「1タスクで◯日の記録を守れる」赤バナー(脈打つ)
 [タスク]     「つぎの一歩」(キャリアプランのおすすめ: 追加/見送る+次ステップ解放ヒント)
              5領域別のタスク一覧 / 追加・編集・アーカイブ(モーダル)
 [きろく]     月カレンダー(達成=緑・フリーズ=青・未達=赤)/ 領域別バー / バッジ一覧 / 累計サマリ
@@ -99,6 +99,18 @@ AppState {
 - 称賛: ストリーク更新・レベルアップ時に即時通知(celebrate表情添付)
 - 権限: 初回起動時にリクエスト。拒否時は設定画面に案内+`Linking.openSettings()`
 
+### アニメーション(`src/components/animations.tsx` / `src/characters/AnimatedCharacter.tsx`)
+- 部品集(すべて transform/opacity のみ・useNativeDriver、「視差効果を減らす」設定時は静的表示):
+  `Bouncy`(押下バウンス)/ `PopIn`(出現ポップ)/ `PopOnChange`(値変化でむくっ)/
+  `Pulse`(脈動)/ `FloatUp`(+XPフロート)/ `ConfettiBurst`(積み木ブロックの紙吹雪)
+- `AnimatedCharacter`: 感情別の待機モーション
+  (通常=呼吸 / worried・tearful=そわそわ左右揺れ / sad=沈んだ深呼吸 / celebrate=ぴょんぴょん)
+  +`bounceKey` の変化でしゃがみ→ジャンプ→着地。
+  通知画像のスナップショット(CharacterImageFactory)は静的な `CharacterView` を直接使う
+- ホーム: タスク完了ごとに紙吹雪+キャラジャンプ(ゴール達成の瞬間は増量)、
+  ストリーク数字ポップ、週ストリップの時差ポップイン、BlockProgress の埋まった瞬間の弾み
+- お祝いモーダル: celebrate 待機モーション+紙吹雪
+
 ### デイリーミッション生成
 - 日付が変わって最初の起動時に、**完了数が少ない領域を優先**して各領域から
   最も実施回数の少ないタスクをラウンドロビンで `dailyGoal` 件選出
@@ -120,6 +132,7 @@ AppState {
 ✅ src/utils/date.ts, id.ts    日付キー・ハッシュ
 ✅ src/store/types.ts          全モデル定義
 ✅ src/store/seed.ts           5領域+サンプルタスク12件+初期状態
+                               (タスクは career-roadmap.md の具体アクション粒度)
 ✅ src/store/streak.ts         ストリーク導出・reconcile・フリーズ
 ✅ src/store/xp.ts             レベル・バッジ17種
 ✅ src/store/mood.ts           感情出し分け・通知スロット
@@ -136,7 +149,9 @@ AppState {
 ✅ src/notifications/           notifications.ts(7日分スケジュール・称賛通知・権限)+
                                 characterImages.ts(PNGキャッシュ・添付用コピー)
 ✅ src/screens/                 ホーム/タスク/きろく/せってい
-✅ src/components/              CelebrationModal / TaskEditModal / 共通UI
+✅ src/components/              CelebrationModal / TaskEditModal / 共通UI /
+                                animations.tsx(紙吹雪・XPフロート・バウンス等の部品集)
+✅ src/characters/AnimatedCharacter.tsx  感情別待機モーション+完了ジャンプ
 ✅ App.tsx                      タブ4画面+ブリッジ接続+起動時権限リクエスト
 ✅ assets/character/icon-*.svg + scripts/make-icon.mjs(npm run icon <キャラ名>)
 ✅ README.md / npx tsc --noEmit 通過

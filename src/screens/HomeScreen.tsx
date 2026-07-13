@@ -1,17 +1,26 @@
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../store/AppContext';
 import { getCharacter } from '../characters';
-import CharacterView from '../characters/CharacterView';
+import AnimatedCharacter from '../characters/AnimatedCharacter';
 import { ambientEmotion } from '../store/mood';
 import { completionsOn, currentStreak, isTodayDone, MAX_FREEZES } from '../store/streak';
 import { levelFromXp } from '../store/xp';
 import { areaOf } from '../store/seed';
+import { Task } from '../store/types';
 import { dateKey, formatCountdown, minutesUntilMidnight, todayKey } from '../utils/date';
 import { stableHash } from '../utils/id';
 import { colors, font, radius } from '../theme';
-import { BlockProgress, Card, CheckBlock, SectionTitle } from '../components/ui';
+import { BlockProgress, Card, CheckBlock } from '../components/ui';
+import {
+  Bouncy,
+  ConfettiBurst,
+  FloatUp,
+  PopIn,
+  PopOnChange,
+  Pulse,
+} from '../components/animations';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 const LEVEL_BLOCKS = 10;
@@ -27,6 +36,7 @@ export default function HomeScreen() {
   const doneToday = completionsOn(state, today);
   const todayDone = isTodayDone(state, now);
   const level = levelFromXp(state.xp);
+  const goal = state.settings.dailyGoal;
 
   // セリフは「日付+感情」で安定抽選(同じ日は同じセリフ)
   const pool = char.speech[emotion];
@@ -44,6 +54,18 @@ export default function HomeScreen() {
   const doneTaskIds = new Set(
     state.logs.filter((l) => l.dateKey === today).map((l) => l.taskId)
   );
+
+  // タスク完了のたびに紙吹雪+キャラのジャンプ。ゴール達成の瞬間は盛大に
+  const [burst, setBurst] = useState(0);
+  const [burstCount, setBurstCount] = useState(24);
+  const prevDone = useRef(doneToday);
+  useEffect(() => {
+    if (doneToday > prevDone.current) {
+      setBurstCount(doneToday === goal ? 48 : 20);
+      setBurst((b) => b + 1);
+    }
+    prevDone.current = doneToday;
+  }, [doneToday, goal]);
 
   // 直近7日のブロックストリップ
   const logDays = useMemo(() => new Set(state.logs.map((l) => l.dateKey)), [state.logs]);
@@ -72,11 +94,18 @@ export default function HomeScreen() {
           { backgroundColor: char.bgColor, paddingTop: insets.top + 12 },
         ]}
       >
-        <View style={styles.bubble}>
-          <Text style={styles.bubbleText}>{speech}</Text>
-        </View>
-        <View style={styles.bubbleTail} />
-        <CharacterView characterId={char.id} emotion={emotion} size={150} />
+        <PopIn popKey={speech}>
+          <View style={styles.bubble}>
+            <Text style={styles.bubbleText}>{speech}</Text>
+          </View>
+          <View style={styles.bubbleTail} />
+        </PopIn>
+        <AnimatedCharacter
+          characterId={char.id}
+          emotion={emotion}
+          size={150}
+          bounceKey={burst}
+        />
         <View style={styles.ground} />
         <View style={styles.nameRow}>
           <Text style={styles.charName}>{char.name}</Text>
@@ -84,127 +113,156 @@ export default function HomeScreen() {
             <Text style={styles.titlePillText}>{char.title}</Text>
           </View>
         </View>
+        <ConfettiBurst play={burst} count={burstCount} />
       </View>
 
       {/* ストリーク(ステージに重ねて浮かせる) */}
       <Card style={styles.streakCard}>
         <View style={styles.streakRow}>
-          <View style={styles.streakMain}>
+          <PopOnChange value={streak} style={styles.streakMain}>
             <Text style={styles.streakNumber}>
               {char.streakEmoji} {streak}
               <Text style={styles.streakUnit}> 日連続</Text>
             </Text>
-            <Text style={styles.streakSub}>
-              最長 {state.longest}日 ・ レベル{level.level}
-            </Text>
-          </View>
+          </PopOnChange>
           <View style={styles.freezeBox}>
             <Text style={styles.freezeText}>❄️ ×{state.freezes}</Text>
-            <Text style={styles.freezeSub}>フリーズ(最大{MAX_FREEZES})</Text>
+            <Text style={styles.freezeSub}>フリーズ</Text>
           </View>
         </View>
 
         <View style={styles.weekRow}>
-          {week.map((d) => (
+          {week.map((d, i) => (
             <View key={d.key} style={styles.weekCell}>
               <Text style={styles.weekLabel}>{d.label}</Text>
-              <View
-                style={[
-                  styles.weekBlock,
-                  d.done && { backgroundColor: colors.success },
-                  d.frozen && { backgroundColor: colors.freeze },
-                  d.missed && { backgroundColor: colors.dangerBg },
-                  d.isToday && styles.weekBlockToday,
-                ]}
-              >
-                {d.done && <Text style={styles.weekCheck}>✓</Text>}
-                {d.frozen && <Text style={styles.weekCheck}>❄</Text>}
-              </View>
+              <PopIn delay={i * 50}>
+                <View
+                  style={[
+                    styles.weekBlock,
+                    d.done && { backgroundColor: colors.success },
+                    d.frozen && { backgroundColor: colors.freeze },
+                    d.missed && { backgroundColor: colors.dangerBg },
+                    d.isToday && styles.weekBlockToday,
+                  ]}
+                >
+                  {d.done && <Text style={styles.weekCheck}>✓</Text>}
+                  {d.frozen && <Text style={styles.weekCheck}>❄</Text>}
+                </View>
+              </PopIn>
             </View>
           ))}
         </View>
 
         <View style={styles.levelRow}>
-          <BlockProgress
-            total={LEVEL_BLOCKS}
-            filled={Math.floor((level.into / level.need) * LEVEL_BLOCKS)}
-            color={colors.gold}
-            height={10}
-          />
-          <Text style={styles.levelText}>次のレベルまで {level.need - level.into} XP</Text>
+          <View style={styles.levelChip}>
+            <Text style={styles.levelChipText}>Lv.{level.level}</Text>
+          </View>
+          <View style={styles.levelBar}>
+            <BlockProgress
+              total={LEVEL_BLOCKS}
+              filled={Math.floor((level.into / level.need) * LEVEL_BLOCKS)}
+              color={colors.gold}
+              height={10}
+            />
+          </View>
+          <Text style={styles.levelText}>あと{level.need - level.into}</Text>
         </View>
       </Card>
 
       {/* 夜の損失回避バナー */}
       {showDanger && (
-        <View style={styles.dangerBanner}>
-          <Text style={styles.dangerTitle}>
-            ⏰ 今日終了まで {formatCountdown(minutesUntilMidnight(now))}
-          </Text>
-          <Text style={styles.dangerText}>あと1タスクで {streak}日の記録を守れる!</Text>
-        </View>
+        <Pulse>
+          <View style={styles.dangerBanner}>
+            <Text style={styles.dangerTitle}>
+              ⏰ あと{formatCountdown(minutesUntilMidnight(now))}
+            </Text>
+            <Text style={styles.dangerText}>1タスクで {streak}日の記録を守れる!</Text>
+          </View>
+        </Pulse>
       )}
 
-      {/* デイリーゴール(1タスク=1ブロック) */}
-      <SectionTitle>今日のゴール</SectionTitle>
-      <Card>
+      {/* 今日のミッション(デイリーゴールと一体) */}
+      <Card style={styles.missionCard}>
         <View style={styles.goalRow}>
-          <Text style={styles.goalText}>
-            {doneToday}
-            <Text style={styles.goalTotal}> / {state.settings.dailyGoal} タスク</Text>
-          </Text>
-          {doneToday >= state.settings.dailyGoal && (
-            <View style={styles.goalDonePill}>
-              <Text style={styles.goalDoneText}>達成!🎉</Text>
-            </View>
+          <Text style={styles.missionHeading}>きょうのミッション</Text>
+          {doneToday >= goal ? (
+            <PopIn popKey="done">
+              <View style={styles.goalDonePill}>
+                <Text style={styles.goalDoneText}>達成!🎉</Text>
+              </View>
+            </PopIn>
+          ) : (
+            <Text style={styles.goalText}>
+              {doneToday}
+              <Text style={styles.goalTotal}> / {goal}</Text>
+            </Text>
           )}
         </View>
-        <BlockProgress
-          total={state.settings.dailyGoal}
-          filled={doneToday}
-          color={colors.success}
-          height={16}
-        />
-      </Card>
+        <BlockProgress total={goal} filled={doneToday} color={colors.success} height={16} />
 
-      {/* 今日のミッション */}
-      <SectionTitle>今日のミッション</SectionTitle>
-      <Card style={styles.missionCard}>
-        {missionTasks.length === 0 && (
-          <Text style={styles.emptyText}>
-            タスクがありません。「タスク」タブから追加してください。
-          </Text>
-        )}
-        {missionTasks.map((task, i) => {
-          const done = doneTaskIds.has(task.id);
-          const area = areaOf(task.areaId);
-          return (
-            <Pressable
+        <View style={styles.missionList}>
+          {missionTasks.length === 0 && (
+            <Text style={styles.emptyText}>「タスク」タブから追加してね</Text>
+          )}
+          {missionTasks.map((task, i) => (
+            <MissionRow
               key={task.id}
-              onPress={() => (done ? uncompleteTask(task.id) : completeTask(task.id))}
-              style={[styles.missionRow, i > 0 && styles.missionRowBorder]}
-            >
-              <CheckBlock done={done} size={30} />
-              <View style={styles.missionBody}>
-                <Text style={[styles.missionTitle, done && styles.missionTitleDone]}>
-                  {task.title}
-                </Text>
-                <View style={styles.missionMetaRow}>
-                  <View style={[styles.areaDot, { backgroundColor: area.color }]} />
-                  <Text style={styles.missionMeta}>
-                    {area.short} ・ +{task.xp} XP
-                  </Text>
-                </View>
-              </View>
-            </Pressable>
-          );
-        })}
+              task={task}
+              done={doneTaskIds.has(task.id)}
+              bordered={i > 0}
+              onComplete={() => completeTask(task.id)}
+              onUncomplete={() => uncompleteTask(task.id)}
+            />
+          ))}
+        </View>
       </Card>
-
-      <Text style={styles.footnote}>
-        1日1タスクでもストリークはつながるよ({char.actionWord}1回でOK)
-      </Text>
     </ScrollView>
+  );
+}
+
+/** ミッション1行。押すとふにっと沈み、完了時は +XP がふわっと浮かぶ */
+function MissionRow({
+  task,
+  done,
+  bordered,
+  onComplete,
+  onUncomplete,
+}: {
+  task: Task;
+  done: boolean;
+  bordered: boolean;
+  onComplete: () => void;
+  onUncomplete: () => void;
+}) {
+  const [xpPlay, setXpPlay] = useState(0);
+  const area = areaOf(task.areaId);
+
+  const handlePress = () => {
+    if (done) {
+      onUncomplete();
+    } else {
+      setXpPlay((p) => p + 1);
+      onComplete();
+    }
+  };
+
+  return (
+    <Bouncy onPress={handlePress} style={styles.missionRowOuter}>
+      <View style={[styles.missionRow, bordered && styles.missionRowBorder]}>
+        <CheckBlock done={done} size={30} />
+        <View style={styles.missionBody}>
+          <Text style={[styles.missionTitle, done && styles.missionTitleDone]}>
+            {task.title}
+          </Text>
+        </View>
+        <View style={[styles.xpChip, done && styles.xpChipDone]}>
+          <Text style={[styles.xpChipText, { color: done ? colors.success : area.color }]}>
+            +{task.xp}
+          </Text>
+        </View>
+        <FloatUp play={xpPlay} text={`+${task.xp} XP`} color={colors.gold} />
+      </View>
+    </Bouncy>
   );
 }
 
@@ -237,6 +295,7 @@ const styles = StyleSheet.create({
     borderRightColor: 'transparent',
     borderTopColor: colors.card,
     marginBottom: 2,
+    alignSelf: 'center',
   },
   ground: {
     width: 120,
@@ -256,7 +315,7 @@ const styles = StyleSheet.create({
   titlePillText: { fontSize: 11, color: colors.sub },
   streakCard: { gap: 14, marginTop: -32 },
   streakRow: { flexDirection: 'row', alignItems: 'center' },
-  streakMain: { flex: 1 },
+  streakMain: { flex: 1, alignItems: 'flex-start' },
   streakNumber: {
     fontSize: 36,
     fontWeight: '800',
@@ -264,7 +323,6 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   streakUnit: { fontSize: 16, fontWeight: '600', color: colors.sub },
-  streakSub: { marginTop: 2, fontSize: 13, color: colors.sub },
   freezeBox: {
     backgroundColor: colors.freezeSoft,
     borderRadius: radius.chip,
@@ -287,8 +345,16 @@ const styles = StyleSheet.create({
   },
   weekBlockToday: { borderWidth: 2, borderColor: colors.primary },
   weekCheck: { fontSize: 12, fontWeight: '800', color: '#FFF' },
-  levelRow: { gap: 5 },
-  levelText: { fontSize: 11, color: colors.sub, textAlign: 'right' },
+  levelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  levelChip: {
+    backgroundColor: colors.goldSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+  },
+  levelChipText: { fontSize: 12, fontWeight: '800', color: colors.gold },
+  levelBar: { flex: 1 },
+  levelText: { fontSize: 11, color: colors.sub, fontVariant: ['tabular-nums'] },
   dangerBanner: {
     backgroundColor: colors.danger,
     borderRadius: 20,
@@ -297,6 +363,8 @@ const styles = StyleSheet.create({
   },
   dangerTitle: { fontSize: 15, fontWeight: '800', color: '#FFF' },
   dangerText: { fontSize: 14, color: 'rgba(255, 255, 255, 0.92)' },
+  missionCard: { paddingBottom: 8 },
+  missionHeading: { fontSize: 16, fontWeight: '800', color: colors.text },
   goalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -317,21 +385,26 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   goalDoneText: { fontSize: 13, fontWeight: '700', color: colors.success },
-  missionCard: { paddingVertical: 6 },
-  missionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, gap: 13 },
+  missionList: { marginTop: 6 },
+  missionRowOuter: { marginHorizontal: -6 },
+  missionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 6,
+    gap: 13,
+  },
   missionRowBorder: { borderTopWidth: 1, borderTopColor: colors.faint },
   missionBody: { flex: 1 },
   missionTitle: { fontSize: 15, color: colors.text, lineHeight: 20 },
   missionTitleDone: { textDecorationLine: 'line-through', color: colors.sub },
-  missionMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
-  areaDot: { width: 8, height: 8, borderRadius: 3 },
-  missionMeta: { fontSize: 12, color: colors.sub },
-  emptyText: { fontSize: 14, color: colors.sub, paddingVertical: 12 },
-  footnote: {
-    fontSize: 12,
-    color: colors.sub,
-    textAlign: 'center',
-    marginTop: 4,
-    fontFamily: font.rounded,
+  xpChip: {
+    backgroundColor: colors.faint,
+    borderRadius: radius.pill,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
   },
+  xpChipDone: { backgroundColor: colors.successSoft },
+  xpChipText: { fontSize: 12, fontWeight: '800' },
+  emptyText: { fontSize: 14, color: colors.sub, paddingVertical: 12 },
 });

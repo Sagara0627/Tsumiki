@@ -24,7 +24,8 @@
     },
     "plugins": [
       "expo-sharing",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "./plugins/withoutPushEntitlement"
     ]
   }
 }

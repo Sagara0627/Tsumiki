@@ -8,6 +8,7 @@ import { AreaId, Task } from '../store/types';
 import { todayKey } from '../utils/date';
 import { colors, radius } from '../theme';
 import { Card, CheckBlock } from '../components/ui';
+import { Bouncy } from '../components/animations';
 import TaskEditModal from '../components/TaskEditModal';
 
 export default function TasksScreen() {
@@ -87,16 +88,16 @@ export default function TasksScreen() {
                     <View style={styles.taskBody}>
                       <Text style={styles.taskTitle}>{t.title}</Text>
                       <Text style={styles.taskMeta}>
-                        {stage.emoji} ステップ{t.stage} {stage.name} ・ {area.emoji}
+                        {stage.emoji} {stage.name} ・ {area.emoji}
                         {area.short} ・ +{t.xp} XP
                       </Text>
                     </View>
                     <Pressable style={styles.recoDismiss} onPress={() => dismissTemplate(t.id)} hitSlop={6}>
                       <Text style={styles.recoDismissText}>見送る</Text>
                     </Pressable>
-                    <Pressable style={styles.addButton} onPress={() => adoptTemplate(t.id)} hitSlop={6}>
+                    <Bouncy style={styles.addButton} onPress={() => adoptTemplate(t.id)} scaleTo={0.9}>
                       <Text style={styles.addButtonText}>+ 追加</Text>
-                    </Pressable>
+                    </Bouncy>
                   </View>
                 );
               })}
@@ -130,9 +131,9 @@ export default function TasksScreen() {
                   <Text style={styles.sectionName}>{area.name}</Text>
                   <Text style={styles.sectionDesc}>{area.description}</Text>
                 </View>
-                <Pressable style={styles.addButton} onPress={() => openNew(area.id)}>
+                <Bouncy style={styles.addButton} onPress={() => openNew(area.id)} scaleTo={0.9}>
                   <Text style={styles.addButtonText}>+ 追加</Text>
-                </Pressable>
+                </Bouncy>
               </View>
               <Card style={styles.taskCard}>
                 {tasks.length === 0 && (
@@ -162,7 +163,7 @@ export default function TasksScreen() {
                           {task.archived ? '🗄️ ' : ''}
                           {task.title}
                         </Text>
-                        <Text style={styles.taskMeta}>+{task.xp} XP ・ タップで編集</Text>
+                        <Text style={styles.taskMeta}>+{task.xp} XP</Text>
                       </Pressable>
                     </View>
                   );

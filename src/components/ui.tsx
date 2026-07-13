@@ -14,6 +14,9 @@ let reduceMotion = true;
 void AccessibilityInfo.isReduceMotionEnabled().then((v) => {
   reduceMotion = v;
 });
+AccessibilityInfo.addEventListener('reduceMotionChanged', (v) => {
+  reduceMotion = v;
+});
 
 export function prefersReducedMotion(): boolean {
   return reduceMotion;
@@ -88,16 +91,39 @@ export function BlockProgress({
   return (
     <View style={styles.blockRow}>
       {Array.from({ length: blocks }, (_, i) => (
-        <View
-          key={i}
-          style={[
-            styles.block,
-            { height, borderRadius: Math.min(radius.block, height / 2) },
-            i < done && { backgroundColor: color },
-          ]}
-        />
+        <ProgressBlock key={i} on={i < done} color={color} height={height} />
       ))}
     </View>
+  );
+}
+
+/** BlockProgress の1マス。埋まった瞬間にぽんっと弾む */
+function ProgressBlock({ on, color, height }: { on: boolean; color: string; height: number }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const prev = useRef(on);
+
+  useEffect(() => {
+    if (on && !prev.current && !reduceMotion) {
+      scale.setValue(0.4);
+      Animated.spring(scale, {
+        toValue: 1,
+        friction: 4,
+        tension: 160,
+        useNativeDriver: true,
+      }).start();
+    }
+    prev.current = on;
+  }, [on, scale]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.block,
+        { height, borderRadius: Math.min(radius.block, height / 2) },
+        on && { backgroundColor: color },
+        { transform: [{ scale }] },
+      ]}
+    />
   );
 }
 
