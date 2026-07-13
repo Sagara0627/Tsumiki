@@ -37,9 +37,11 @@ const T = (
   areaId: AreaId,
   stage: RoadmapStage,
   title: string,
-  priority = false
+  priority = false,
+  // 文言だけ直したいとき、旧タイトルを渡してIDを維持する(採用済みタスクとの重複追加を防ぐ)
+  idTitle?: string
 ): RoadmapTemplate => ({
-  id: `rm-${areaId}-${stage}-${hash(title)}`,
+  id: `rm-${areaId}-${stage}-${hash(idTitle ?? title)}`,
   areaId,
   stage,
   title,
@@ -71,7 +73,7 @@ export const ROADMAP: RoadmapTemplate[] = [
   T('hearing', 3, '初回ヒアリングから要件ドラフトを書いて合意を取る'),
   // 領域2: 推進力(フェーズ1: 分解の型 → 2: 見積もりと振り返り → 3: 独力で完走)
   T('drive', 1, 'TODO分解テンプレでゴール→30〜60分タスクに細分化する', true),
-  T('drive', 1, '「動詞で始まる最初の一歩」を書き出してすぐ着手する'),
+  T('drive', 1, '「◯◯を書く」形で最初の一歩を書き出し、すぐ着手する', false, '「動詞で始まる最初の一歩」を書き出してすぐ着手する'),
   T('drive', 2, 'タスクに見積もりを付け、実績とのズレを1行メモする'),
   T('drive', 2, '週次で見積もりを振り返り、翌週の優先トップ3を決める'),
   T('drive', 3, '個人開発/副業案件を計画〜リリースへ1歩進める'),
