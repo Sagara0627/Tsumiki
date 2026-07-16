@@ -13,11 +13,15 @@ import {
 } from './src/notifications/notifications';
 import CharacterImageFactory from './src/characters/CharacterImageFactory';
 import CelebrationModal from './src/components/CelebrationModal';
-import { CalendarIcon, HomeIcon, SettingsIcon, TasksIcon } from './src/components/icons';
+import { SimProvider } from './src/components/SimRunner';
+import { CalendarIcon, HomeIcon, MicIcon, SettingsIcon, TasksIcon } from './src/components/icons';
 import HomeScreen from './src/screens/HomeScreen';
 import TasksScreen from './src/screens/TasksScreen';
+import PracticeScreen from './src/screens/PracticeScreen';
 import RecordsScreen from './src/screens/RecordsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import { registerVoiceBridge } from './src/voice';
+import { createExpoVoice } from './src/voice/expoVoice';
 import { colors, font, shadow } from './src/theme';
 
 // store 層 → 通知層の橋渡し(モジュール読み込み時に一度だけ)
@@ -26,6 +30,8 @@ registerNotificationBridge({
   sync: (state) => void syncReminders(state),
   celebrate: (state, c) => void sendCelebration(state, c),
 });
+// UI 層 → 音声層の橋渡し(TTS/STT 実装を注入)
+registerVoiceBridge(createExpoVoice());
 
 const Tab = createBottomTabNavigator();
 
@@ -108,6 +114,15 @@ function Root() {
             }}
           />
           <Tab.Screen
+            name="れんしゅう"
+            component={PracticeScreen}
+            options={{
+              tabBarIcon: ({ focused, color }) => (
+                <TabIcon Icon={MicIcon} color={color} focused={focused} />
+              ),
+            }}
+          />
+          <Tab.Screen
             name="きろく"
             component={RecordsScreen}
             options={{
@@ -139,7 +154,9 @@ export default function App() {
     <SafeAreaProvider>
       <AppProvider>
         <StatusBar style="dark" />
-        <Root />
+        <SimProvider>
+          <Root />
+        </SimProvider>
       </AppProvider>
     </SafeAreaProvider>
   );

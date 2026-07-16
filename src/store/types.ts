@@ -20,6 +20,10 @@ export interface Task {
   createdAt: string; // ISO
   /** ロードマップ由来のタスクは元テンプレートID(重複リコメンド防止) */
   templateId?: string;
+  /** 導入期(ストリーク育成前)に出す極小タスク。ミッション選出・タスク一覧で特別扱いする */
+  warmup?: boolean;
+  /** 音声ロールプレイのタスク。チェックではなく SimRunner を開いて完了する(areaId の台本を使う) */
+  sim?: boolean;
 }
 
 /** ロードマップの段階(ステップ1=きほん → 3=はってん) */

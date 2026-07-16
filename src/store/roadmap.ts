@@ -1,6 +1,7 @@
 import { AppState, AreaId, CareerPlan, RoadmapStage, Task } from './types';
 import { AREAS } from './seed';
 import { perAreaCounts } from './xp';
+import { inWarmup } from './warmup';
 import { genId } from '../utils/id';
 import { todayKey } from '../utils/date';
 
@@ -218,6 +219,8 @@ export function applyCareerPlan(state: AppState): AppState {
 export function autoAddFromRoadmap(state: AppState, now: Date = new Date()): AppState {
   const career = state.career;
   if (!career?.autoAdd) return state;
+  // 導入期は本格タスクを増やさない(ウォームアップに集中させ、リストを膨らませない)
+  if (inWarmup(state, now)) return state;
   const today = todayKey(now);
   if (career.lastAutoAddDate === today) return state;
 

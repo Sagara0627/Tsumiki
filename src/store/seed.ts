@@ -1,4 +1,6 @@
 import { AppState, SkillArea, Task } from './types';
+import { warmupTasks } from './warmup';
+import { SIM_AREAS } from '../sims';
 import { genId } from '../utils/id';
 
 export const AREAS: SkillArea[] = [
@@ -77,11 +79,34 @@ export function seedTasks(): Task[] {
   }));
 }
 
+/** 音声ロールプレイのタスク(相手・場が要る3領域)。ID固定で冪等に補完できる */
+export function simTasks(): Task[] {
+  const now = new Date().toISOString();
+  return SIM_AREAS.map((areaId) => ({
+    id: `sim-${areaId}`,
+    areaId,
+    title: `🎙️ ロールプレイ:${areaOf(areaId).short}`,
+    xp: 15,
+    archived: false,
+    createdAt: now,
+    sim: true,
+  }));
+}
+
+/** 既存 state に欠けているロールプレイタスクを補う(冪等)。新規・移行のどちらもカバー */
+export function ensureSimTasks(state: AppState): AppState {
+  const have = new Set(state.tasks.map((t) => t.id));
+  const missing = simTasks().filter((t) => !have.has(t.id));
+  if (missing.length === 0) return state;
+  return { ...state, tasks: [...state.tasks, ...missing] };
+}
+
 export function initialState(): AppState {
   return {
     version: 2,
     createdAt: new Date().toISOString(),
-    tasks: seedTasks(),
+    // 導入期のウォームアップを先頭に。本格タスク(seedTasks)+ロールプレイはストリーク育成後に出る
+    tasks: [...warmupTasks(), ...seedTasks(), ...simTasks()],
     logs: [],
     freezes: 1, // 初期ボーナスとして1個(初回のうっかりを救済)
     frozenDates: [],
@@ -92,7 +117,7 @@ export function initialState(): AppState {
     missions: { dateKey: '', taskIds: [] },
     career: null,
     settings: {
-      dailyGoal: 3,
+      dailyGoal: 1, // 導入期は実効1件(warmup)。卒業後の目標もまず1件から。設定で増やせる
       reminderTimes: [
         { id: 'r1', hour: 8, minute: 0 },
         { id: 'r2', hour: 12, minute: 0 },

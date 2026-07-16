@@ -7,12 +7,14 @@ import AnimatedCharacter from '../characters/AnimatedCharacter';
 import { ambientEmotion } from '../store/mood';
 import { completionsOn, currentStreak, isTodayDone, MAX_FREEZES } from '../store/streak';
 import { levelFromXp } from '../store/xp';
+import { effectiveDailyGoal } from '../store/warmup';
 import { areaOf } from '../store/seed';
 import { Task } from '../store/types';
 import { dateKey, formatCountdown, minutesUntilMidnight, todayKey } from '../utils/date';
 import { stableHash } from '../utils/id';
 import { colors, font, radius } from '../theme';
 import { BlockProgress, Card, CheckBlock } from '../components/ui';
+import { useSim } from '../components/SimRunner';
 import {
   Bouncy,
   ConfettiBurst,
@@ -27,6 +29,7 @@ const LEVEL_BLOCKS = 10;
 
 export default function HomeScreen() {
   const { state, now, completeTask, uncompleteTask } = useApp();
+  const { openSim } = useSim();
   const insets = useSafeAreaInsets();
 
   const char = getCharacter(state.settings.characterId);
@@ -36,7 +39,7 @@ export default function HomeScreen() {
   const doneToday = completionsOn(state, today);
   const todayDone = isTodayDone(state, now);
   const level = levelFromXp(state.xp);
-  const goal = state.settings.dailyGoal;
+  const goal = effectiveDailyGoal(state, now);
 
   // セリフは「日付+感情」で安定抽選(同じ日は同じセリフ)
   const pool = char.speech[emotion];
@@ -212,6 +215,7 @@ export default function HomeScreen() {
               bordered={i > 0}
               onComplete={() => completeTask(task.id)}
               onUncomplete={() => uncompleteTask(task.id)}
+              onOpenSim={() => openSim(task.areaId)}
             />
           ))}
         </View>
@@ -227,12 +231,14 @@ function MissionRow({
   bordered,
   onComplete,
   onUncomplete,
+  onOpenSim,
 }: {
   task: Task;
   done: boolean;
   bordered: boolean;
   onComplete: () => void;
   onUncomplete: () => void;
+  onOpenSim: () => void;
 }) {
   const [xpPlay, setXpPlay] = useState(0);
   const area = areaOf(task.areaId);
@@ -240,6 +246,9 @@ function MissionRow({
   const handlePress = () => {
     if (done) {
       onUncomplete();
+    } else if (task.sim) {
+      // ロールプレイはチェックではなく実行画面を開いて完了する
+      onOpenSim();
     } else {
       setXpPlay((p) => p + 1);
       onComplete();
@@ -254,6 +263,7 @@ function MissionRow({
           <Text style={[styles.missionTitle, done && styles.missionTitleDone]}>
             {task.title}
           </Text>
+          {task.sim && !done && <Text style={styles.missionSimHint}>タップで声の練習をはじめる</Text>}
         </View>
         <View style={[styles.xpChip, done && styles.xpChipDone]}>
           <Text style={[styles.xpChipText, { color: done ? colors.success : area.color }]}>
@@ -398,6 +408,7 @@ const styles = StyleSheet.create({
   missionBody: { flex: 1 },
   missionTitle: { fontSize: 15, color: colors.text, lineHeight: 20 },
   missionTitleDone: { textDecorationLine: 'line-through', color: colors.sub },
+  missionSimHint: { fontSize: 12, color: colors.primary, fontWeight: '700', marginTop: 2 },
   xpChip: {
     backgroundColor: colors.faint,
     borderRadius: radius.pill,

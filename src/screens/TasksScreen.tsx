@@ -9,10 +9,12 @@ import { todayKey } from '../utils/date';
 import { colors, radius } from '../theme';
 import { Card, CheckBlock } from '../components/ui';
 import { Bouncy } from '../components/animations';
+import { useSim } from '../components/SimRunner';
 import TaskEditModal from '../components/TaskEditModal';
 
 export default function TasksScreen() {
   const { state, now, completeTask, uncompleteTask, adoptTemplate, dismissTemplate } = useApp();
+  const { openSim } = useSim();
   const insets = useSafeAreaInsets();
   const [showArchived, setShowArchived] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -119,7 +121,7 @@ export default function TasksScreen() {
 
         {AREAS.map((area) => {
           const tasks = state.tasks.filter(
-            (t) => t.areaId === area.id && (showArchived || !t.archived)
+            (t) => t.areaId === area.id && !t.warmup && (showArchived || !t.archived)
           );
           return (
             <View key={area.id} style={styles.section}>
@@ -145,14 +147,23 @@ export default function TasksScreen() {
                     <View key={task.id} style={[styles.taskRow, i > 0 && styles.taskRowBorder]}>
                       <Pressable
                         onPress={() =>
-                          done ? uncompleteTask(task.id) : completeTask(task.id)
+                          done
+                            ? uncompleteTask(task.id)
+                            : task.sim
+                              ? openSim(task.areaId)
+                              : completeTask(task.id)
                         }
                         disabled={task.archived}
                         hitSlop={6}
                       >
                         <CheckBlock done={done} size={26} disabled={task.archived} />
                       </Pressable>
-                      <Pressable style={styles.taskBody} onPress={() => openEdit(task)}>
+                      <Pressable
+                        style={styles.taskBody}
+                        onPress={() =>
+                          task.sim && !done ? openSim(task.areaId) : openEdit(task)
+                        }
+                      >
                         <Text
                           style={[
                             styles.taskTitle,
@@ -163,7 +174,9 @@ export default function TasksScreen() {
                           {task.archived ? '🗄️ ' : ''}
                           {task.title}
                         </Text>
-                        <Text style={styles.taskMeta}>+{task.xp} XP</Text>
+                        <Text style={styles.taskMeta}>
+                          {task.sim ? '🎙️ 声で練習 ・ ' : ''}+{task.xp} XP
+                        </Text>
                       </Pressable>
                     </View>
                   );

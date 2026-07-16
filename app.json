@@ -25,7 +25,15 @@
     "plugins": [
       "expo-sharing",
       "@react-native-community/datetimepicker",
-      "./plugins/withoutPushEntitlement"
+      "./plugins/withoutPushEntitlement",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "ロールプレイ練習であなたの声を聞き取るためにマイクを使います。",
+          "speechRecognitionPermission": "ロールプレイ練習の発話をその場で文字に変換するために音声認識を使います(端末内で処理されます)。",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+        }
+      ]
     ]
   }
 }

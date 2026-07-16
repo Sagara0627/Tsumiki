@@ -79,6 +79,33 @@ export function CalendarIcon({ color, size = 24, focused }: IconProps) {
   );
 }
 
+export function MicIcon({ color, size = 24, focused }: IconProps) {
+  const sw = focused ? 2.3 : 1.8;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x={9}
+        y={2.8}
+        width={6}
+        height={11}
+        rx={3}
+        stroke={color}
+        strokeWidth={sw}
+        fill={focused ? color : 'none'}
+        fillOpacity={focused ? 0.16 : 0}
+      />
+      <Path
+        d="M5.8 11.2a6.2 6.2 0 0 0 12.4 0"
+        stroke={color}
+        strokeWidth={sw}
+        strokeLinecap="round"
+      />
+      <Line x1={12} y1={17.6} x2={12} y2={21} stroke={color} strokeWidth={sw} strokeLinecap="round" />
+      <Line x1={8.6} y1={21} x2={15.4} y2={21} stroke={color} strokeWidth={sw} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 export function SettingsIcon({ color, size = 24, focused }: IconProps) {
   const sw = focused ? 2.3 : 1.8;
   return (

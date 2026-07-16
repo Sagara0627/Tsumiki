@@ -21,7 +21,7 @@
 
 ## 2. 画面構成
 
-ボトムタブ4画面+モーダル2種:
+ボトムタブ5画面+モーダル3種:
 
 ```
 [ホーム]     キャラ(表情+吹き出し+常時アニメーション)/ 🔥ストリーク大表示 / ❄️フリーズ所持数
@@ -29,12 +29,14 @@
              夜未完了時: 「あと n時間」+「1タスクで◯日の記録を守れる」赤バナー(脈打つ)
 [タスク]     「つぎの一歩」(キャリアプランのおすすめ: 追加/見送る+次ステップ解放ヒント)
              5領域別のタスク一覧 / 追加・編集・アーカイブ(モーダル)
+[れんしゅう] 相手・場が要る3領域(ヒアリング/推進/調整交渉)の音声ロールプレイをいつでも起動
 [きろく]     月カレンダー(達成=緑・フリーズ=青・未達=赤)/ 領域別バー / バッジ一覧 / 累計サマリ
 [せってい]   通知時刻の追加・変更(デフォルト 8:00/12:00/19:00/21:00)/ 権限案内
              デイリーゴール / キャリアプラン(目標・重点領域・自動追加)/ キャラ切替
              JSONエクスポート・インポート / リセット
 
-[お祝いモーダル]  レベルアップ・バッジ・マイルストーン時に celebrate 表情で表示
+[お祝いモーダル]      レベルアップ・バッジ・マイルストーン時に celebrate 表情で表示
+[ロールプレイモーダル] SimRunner。台本選択→対話→フィードバック→完走で該当領域のタスクを完了扱い
 [タスク編集モーダル] タイトル / 領域 / XP
 ```
 
@@ -59,6 +61,8 @@ AppState {
 ```
 
 - `Task.templateId?` はロードマップ由来タスクの元テンプレートID(重複リコメンド防止)
+- `Task.warmup?` は導入期の極小タスク(ミッション選出・タスク一覧で特別扱い)
+- `Task.sim?` は音声ロールプレイのタスク(チェックではなく SimRunner を開いて完了。ID固定 `sim-<area>`)
 
 - 領域は5固定: `tech / hearing / drive / negotiation / output`(色・絵文字付き、`seed.ts`)
 - 永続化: AsyncStorage 単一キー `tsumiki:state:v1`。
@@ -111,9 +115,32 @@ AppState {
   ストリーク数字ポップ、週ストリップの時差ポップイン、BlockProgress の埋まった瞬間の弾み
 - お祝いモーダル: celebrate 待機モーション+紙吹雪
 
+### 導入期(ウォームアップ層 `src/store/warmup.ts`)
+- 損失回避はストリークが無いと効かないため、**ストリーク < 3 の間は導入期**として扱う
+- 導入期は「30秒・どこでも・状況非依存」の極小タスク(`warmup: true`)を**1件だけ**ミッションに出す。
+  実効デイリーゴールも `effectiveDailyGoal` で **1固定**(設定値より優先)
+- ストリークが3に達すると卒業し、本格タスク(seed/ロードマップ)とゴール設定値へ移行。
+  途切れると再び導入期に戻る(やさしい再オンボード)
+- 導入期は `autoAddFromRoadmap` を停止し、タスクリストを膨らませない
+- ウォームアップタスクは `ensureWarmupTasks`(`settleDay` 内・冪等)で補完。タスク画面には出さない
+
 ### デイリーミッション生成
-- 日付が変わって最初の起動時に、**完了数が少ない領域を優先**して各領域から
-  最も実施回数の少ないタスクをラウンドロビンで `dailyGoal` 件選出
+- 導入期はウォームアップを1件(上記)。卒業後は、日付が変わって最初の起動時に
+  **完了数が少ない領域を優先**して各領域から
+  最も実施回数の少ないタスクをラウンドロビンで `dailyGoal` 件選出(ウォームアップは除外)
+
+### 音声ロールプレイ(`src/sims/` + `src/voice/` + `SimRunner`)
+- **狙い**: 相手・場が要る3領域(ヒアリング/推進/調整交渉)は実行タイミングを自分で作れない。
+  台本ベースの音声ロールプレイに置き換え、いつでも回せるようにする(端末内にAI対話相手は置けないため)
+- **台本(`src/sims/`)**: `SimScenario`(領域ごとの台本)。キャラが TTS で話す→ユーザーが声/テキストで返す→
+  `match.ts` の**キーワード判定(AND of OR・カタカナ/全角を正規化)**で intent に振り分け→フィードバック。
+  ヒアリング/交渉は対話、推進は「声に出して宣言する」独白ドリル
+- **音声層(`src/voice/`)**: `VoiceBridge` を App 起動時に注入(NotificationBridge と同じ依存方向)。
+  実装は `expo-speech`(TTS)+ `expo-speech-recognition`(STT・iOS はオンデバイス認識で音声を端末外に出さない)。
+  STT 不可(Expo Go・シミュレータ・権限拒否)なら `listen` が例外→**テキスト入力にフォールバック**
+- **完了連携**: 完走すると `sim-<area>` タスクを `completeTask` で完了扱い(=ストリーク・ゴール・XPが進む)。
+  ロールプレイタスクは seed 済み(`Task.sim`)で、ミッションにも本格タスクとして選ばれる=「タスクの一環」
+- **起動導線**: れんしゅうタブ / ホームのミッション行 / タスク一覧の該当行(いずれも SimRunner を開く)
 
 ### キャリアプランとロードマップ(`src/store/roadmap.ts`)
 - せっていで **目標(自由記述)+重点領域+自動追加ON/OFF** を設定すると有効化
@@ -131,7 +158,7 @@ AppState {
 ✅ docs/character-spec.md      キャラ3案の完全仕様(発注可能レベル)
 ✅ src/utils/date.ts, id.ts    日付キー・ハッシュ
 ✅ src/store/types.ts          全モデル定義
-✅ src/store/seed.ts           5領域+サンプルタスク12件+初期状態
+✅ src/store/seed.ts           5領域+サンプルタスク12件+ロールプレイタスク3件+初期状態
                                (タスクは career-roadmap.md の具体アクション粒度)
 ✅ src/store/streak.ts         ストリーク導出・reconcile・フリーズ
 ✅ src/store/xp.ts             レベル・バッジ17種
@@ -141,7 +168,12 @@ AppState {
 ✅ src/characters/index.ts     差し替え1か所(DEFAULT_CHARACTER_ID)
 ✅ src/characters/CharacterView.tsx
 ✅ 依存インストール済み(Expo SDK 57, notifications/svg/view-shot/navigation ほか)
-✅ src/store/missions.ts        デイリーミッション生成(手薄な領域優先のラウンドロビン)
+✅ src/store/warmup.ts          導入期のウォームアップ層(ストリーク<3は極小タスク1件・ゴール1固定)
+✅ src/sims/                     音声ロールプレイの台本+キーワード判定(6シナリオ・hearing/drive/negotiation)
+✅ src/voice/                    VoiceBridge(expo-speech TTS + expo-speech-recognition STT・テキスト退避)
+✅ src/components/SimRunner.tsx  ロールプレイ実行モーダル(台本選択→対話→完走で該当タスク完了)
+✅ src/screens/PracticeScreen.tsx れんしゅうタブ(3領域のロールプレイをいつでも起動)
+✅ src/store/missions.ts        デイリーミッション生成(導入期はウォームアップ、卒業後はラウンドロビン)
 ✅ src/store/roadmap.ts         キャリアプラン用ロードマップ(テンプレ30件・リコメンド・自動追加)
 ✅ src/store/AppContext.tsx     Provider(stateRef方式・お祝いキュー・debounce保存/通知同期・
                                 フォアグラウンドreconcile・30秒tick・NotificationBridge注入)

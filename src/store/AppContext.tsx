@@ -10,11 +10,12 @@ import React, {
 // RN の AppState はアプリ状態(active/background)。データモデルの AppState と衝突するため別名にする
 import { AppState as RNAppState } from 'react-native';
 import { AppState, AreaId, CareerPlan, Celebration, CharacterId, Task } from './types';
-import { initialState } from './seed';
+import { initialState, ensureSimTasks } from './seed';
 import { loadState, saveState, clearState, serialize, parseImport } from './storage';
 import { completionsOn, currentStreak, reconcile, MAX_FREEZES, STREAK_MILESTONES } from './streak';
 import { ensureMissions } from './missions';
 import { applyCareerPlan, autoAddFromRoadmap, taskFromTemplate, templateOf } from './roadmap';
+import { ensureWarmupTasks } from './warmup';
 import { levelFromXp, newlyEarnedBadges } from './xp';
 import { getCharacter } from '../characters';
 import { genId } from '../utils/id';
@@ -74,9 +75,12 @@ export function useApp(): AppApi {
   return api;
 }
 
-/** 日次精算: 空白日の精算 → ロードマップの自動追加(1日1件) → 今日のミッション生成 */
+/** 日次精算: 空白日の精算 → ウォームアップ/ロールプレイ補完 → ロードマップの自動追加(1日1件) → 今日のミッション生成 */
 function settleDay(s: AppState, d: Date): AppState {
-  return ensureMissions(autoAddFromRoadmap(reconcile(s, d), d), d);
+  return ensureMissions(
+    autoAddFromRoadmap(ensureSimTasks(ensureWarmupTasks(reconcile(s, d))), d),
+    d
+  );
 }
 
 const SAVE_DEBOUNCE_MS = 500;
