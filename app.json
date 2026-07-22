@@ -8,7 +8,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yuyasagara.tsumiki"
+      "bundleIdentifier": "com.yuyasagara.tsumiki",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "開発時に同じWi-Fi上のMetroバンドラーへ接続するために使用します。"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -31,9 +34,12 @@
         {
           "microphonePermission": "ロールプレイ練習であなたの声を聞き取るためにマイクを使います。",
           "speechRecognitionPermission": "ロールプレイ練習の発話をその場で文字に変換するために音声認識を使います(端末内で処理されます)。",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

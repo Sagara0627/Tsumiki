@@ -31,6 +31,7 @@ export default function SettingsScreen() {
   const {
     state,
     setDailyGoal,
+    setSound,
     setCareerPlan,
     setCharacter,
     addReminderTime,
@@ -248,6 +249,30 @@ export default function SettingsScreen() {
           </View>
         </View>
         <Text style={styles.note}>ストリーク自体は1日1タスクでつながります。</Text>
+      </Card>
+
+      {/* サウンド */}
+      <SectionTitle>サウンド</SectionTitle>
+      <Card style={styles.cardGap}>
+        <View style={styles.goalRow}>
+          <Text style={styles.goalLabel}>効果音</Text>
+          <Switch
+            value={state.settings.sound.sfx}
+            onValueChange={(v) => setSound({ sfx: v })}
+            trackColor={{ true: colors.primary }}
+          />
+        </View>
+        <View style={styles.goalRow}>
+          <Text style={styles.goalLabel}>BGM(ループ再生)</Text>
+          <Switch
+            value={state.settings.sound.bgm}
+            onValueChange={(v) => setSound({ bgm: v })}
+            trackColor={{ true: colors.primary }}
+          />
+        </View>
+        <Text style={styles.note}>
+          効果音はタスク完了・お祝いのときに鳴ります。BGM はアプリを開いている間だけ流れ、マナーモード中は鳴りません。
+        </Text>
       </Card>
 
       {/* キャリアプラン */}

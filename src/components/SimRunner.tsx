@@ -62,6 +62,9 @@ function SimModal({ areaId, onClose }: { areaId: AreaId | null; onClose: () => v
   const [feedback, setFeedback] = useState('');
   const [lastGood, setLastGood] = useState(false);
   const [goodCount, setGoodCount] = useState(0);
+  const [answeredCount, setAnsweredCount] = useState(0);
+  const [pendingNext, setPendingNext] = useState<string | null>(null);
+  const [pendingLeadIn, setPendingLeadIn] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [listenState, setListenState] = useState<ListenState>('idle');
   const [useText, setUseText] = useState(!voice.sttAvailable);
@@ -78,6 +81,9 @@ function SimModal({ areaId, onClose }: { areaId: AreaId | null; onClose: () => v
     setPhase(list.length === 1 ? 'intro' : 'pick');
     setTurnIndex(0);
     setGoodCount(0);
+    setAnsweredCount(0);
+    setPendingNext(null);
+    setPendingLeadIn(null);
     setEmotion('cheer');
     setBubble('');
     setFeedback('');
@@ -99,6 +105,9 @@ function SimModal({ areaId, onClose }: { areaId: AreaId | null; onClose: () => v
       setScenario(s);
       setTurnIndex(0);
       setGoodCount(0);
+      setAnsweredCount(0);
+      setPendingNext(null);
+      setPendingLeadIn(null);
       setPhase('turn');
       const first = s.turns[0];
       setEmotion('cheer');
@@ -118,7 +127,10 @@ function SimModal({ areaId, onClose }: { areaId: AreaId | null; onClose: () => v
       const good = result.good;
       const reply = result.intent ? result.intent.reply : turn.onMiss;
       setLastGood(good);
+      setAnsweredCount((c) => c + 1);
       if (good) setGoodCount((c) => c + 1);
+      setPendingNext(result.intent?.next ?? null);
+      setPendingLeadIn(result.intent?.leadIn ?? null);
       setEmotion(good ? 'proud' : 'worried');
       setFeedback(reply);
       setBubble('');
@@ -131,7 +143,10 @@ function SimModal({ areaId, onClose }: { areaId: AreaId | null; onClose: () => v
 
   const next = useCallback(() => {
     if (!scenario) return;
-    const nextIndex = turnIndex + 1;
+    // 直前に一致した意図が next を指定していれば、そのターンへ話を飛ばす(先取りで聞けた話題は繰り返さない)
+    const jumpIndex = pendingNext ? scenario.turns.findIndex((t) => t.id === pendingNext) : -1;
+    const nextIndex = jumpIndex >= 0 ? jumpIndex : turnIndex + 1;
+    setPendingNext(null);
     if (nextIndex >= scenario.turns.length) {
       // 完走: その領域のロールプレイタスクを完了扱いに(冪等・1日1回まで加点)
       if (areaId) completeTask(`sim-${areaId}`);
@@ -143,13 +158,16 @@ function SimModal({ areaId, onClose }: { areaId: AreaId | null; onClose: () => v
       return;
     }
     const t = scenario.turns[nextIndex];
+    // leadIn があれば、直前の受け答えを踏まえた切り出しに差し替える
+    const say = pendingLeadIn ?? t.say;
+    setPendingLeadIn(null);
     setTurnIndex(nextIndex);
     setPhase('turn');
     setEmotion('cheer');
     setFeedback('');
-    setBubble(t.say ?? '');
-    if (t.say) void voice.speak(t.say);
-  }, [scenario, turnIndex, areaId, completeTask, voice]);
+    setBubble(say ?? '');
+    if (say) void voice.speak(say);
+  }, [scenario, turnIndex, pendingNext, pendingLeadIn, areaId, completeTask, voice]);
 
   const startListening = useCallback(async () => {
     setMicError('');
@@ -309,7 +327,7 @@ function SimModal({ areaId, onClose }: { areaId: AreaId | null; onClose: () => v
               <>
                 <Text style={styles.heading}>おつかれさま!</Text>
                 <Text style={styles.doneScore}>
-                  {scenario.turns.length}問中 {goodCount}問がいい返し
+                  {answeredCount}問中 {goodCount}問がいい返し
                 </Text>
                 <Text style={styles.setup}>{scenario.wrapUp}</Text>
                 <Pressable

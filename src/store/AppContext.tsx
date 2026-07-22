@@ -18,6 +18,7 @@ import { applyCareerPlan, autoAddFromRoadmap, taskFromTemplate, templateOf } fro
 import { ensureWarmupTasks } from './warmup';
 import { levelFromXp, newlyEarnedBadges } from './xp';
 import { getCharacter } from '../characters';
+import { getSoundBridge } from '../sound';
 import { genId } from '../utils/id';
 import { todayKey } from '../utils/date';
 
@@ -56,6 +57,7 @@ export interface AppApi {
 
   setDailyGoal(goal: number): void;
   setCharacter(id: CharacterId): void;
+  setSound(patch: Partial<{ sfx: boolean; bgm: boolean }>): void;
   addReminderTime(hour: number, minute: number): void;
   updateReminderTime(id: string, hour: number, minute: number): void;
   removeReminderTime(id: string): void;
@@ -258,6 +260,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       mutate(() => next);
+      getSoundBridge().play('complete'); // 実際にログが追加されたときだけ鳴らす(早期 return 済み)
     },
     [mutate, pushCelebration]
   );
@@ -266,17 +269,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const uncompleteTask = useCallback(
     (taskId: string) => {
       const today = todayKey(new Date());
-      mutate((s) => {
-        const log = [...s.logs]
-          .reverse()
-          .find((l) => l.taskId === taskId && l.dateKey === today);
-        if (!log) return s;
-        return {
-          ...s,
-          logs: s.logs.filter((l) => l.id !== log.id),
-          xp: Math.max(0, s.xp - log.xp),
-        };
-      });
+      const target = [...stateRef.current.logs]
+        .reverse()
+        .find((l) => l.taskId === taskId && l.dateKey === today);
+      if (!target) return;
+      mutate((s) => ({
+        ...s,
+        logs: s.logs.filter((l) => l.id !== target.id),
+        xp: Math.max(0, s.xp - target.xp),
+      }));
+      getSoundBridge().play('tap'); // チェックを外したときの操作音
     },
     [mutate]
   );
@@ -393,6 +395,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [mutate]
   );
 
+  const setSound = useCallback(
+    (patch: Partial<{ sfx: boolean; bgm: boolean }>) => {
+      mutate((s) => ({
+        ...s,
+        settings: { ...s.settings, sound: { ...s.settings.sound, ...patch } },
+      }));
+    },
+    [mutate]
+  );
+
   const addReminderTime = useCallback(
     (hour: number, minute: number) => {
       mutate((s) => ({
@@ -479,6 +491,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dismissTemplate,
       setDailyGoal,
       setCharacter,
+      setSound,
       addReminderTime,
       updateReminderTime,
       removeReminderTime,
@@ -502,6 +515,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dismissTemplate,
       setDailyGoal,
       setCharacter,
+      setSound,
       addReminderTime,
       updateReminderTime,
       removeReminderTime,

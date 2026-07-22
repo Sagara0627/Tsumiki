@@ -67,6 +67,8 @@ export interface Settings {
   dailyGoal: number; // 1日の目標タスク数
   reminderTimes: ReminderTime[];
   characterId: CharacterId;
+  /** サウンド設定(効果音・BGM の ON/OFF)。どちらも初期 ON */
+  sound: { sfx: boolean; bgm: boolean };
 }
 
 export interface AppState {

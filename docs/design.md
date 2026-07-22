@@ -134,13 +134,25 @@ AppState {
   台本ベースの音声ロールプレイに置き換え、いつでも回せるようにする(端末内にAI対話相手は置けないため)
 - **台本(`src/sims/`)**: `SimScenario`(領域ごとの台本)。キャラが TTS で話す→ユーザーが声/テキストで返す→
   `match.ts` の**キーワード判定(AND of OR・カタカナ/全角を正規化)**で intent に振り分け→フィードバック。
-  ヒアリング/交渉は対話、推進は「声に出して宣言する」独白ドリル
+  ヒアリング/交渉は対話、推進は「声に出して宣言する」独白ドリル。
+  `SimIntent.next`/`leadIn` で、話を先取りできた場合は後続ターンを飛ばして自然に合流できる
+  (例: `sim-hearing-vague` の h2「対象範囲を先に聞けた」ケース)。完了時のスコア表示は
+  `scenario.turns.length` 固定ではなく実際に答えたターン数(`answeredCount`)を分母にする
 - **音声層(`src/voice/`)**: `VoiceBridge` を App 起動時に注入(NotificationBridge と同じ依存方向)。
   実装は `expo-speech`(TTS)+ `expo-speech-recognition`(STT・iOS はオンデバイス認識で音声を端末外に出さない)。
   STT 不可(Expo Go・シミュレータ・権限拒否)なら `listen` が例外→**テキスト入力にフォールバック**
 - **完了連携**: 完走すると `sim-<area>` タスクを `completeTask` で完了扱い(=ストリーク・ゴール・XPが進む)。
   ロールプレイタスクは seed 済み(`Task.sim`)で、ミッションにも本格タスクとして選ばれる=「タスクの一環」
 - **起動導線**: れんしゅうタブ / ホームのミッション行 / タスク一覧の該当行(いずれも SimRunner を開く)
+
+### サウンド(`src/sound/` 実装済み)
+- **サウンド層(`src/sound/`)**: `SoundBridge` を App 起動時に注入(NotificationBridge / VoiceBridge と同じ依存方向)。
+  store 層は expo-audio に依存せず、`getSoundBridge().play('complete')` のように呼ぶだけ。注入前・初期化失敗時は noop(無音)
+- **効果音**: `complete`(タスク完了・store の completeTask)/ `celebrate`(お祝い表示・CelebrationModal)/ `tap`(チェック外し)。
+  設定 `sound.sfx` が OFF ならブリッジ実装側で握りつぶす
+- **BGM**: ループ再生。設定 `sound.bgm`(初期 ON)で切替。アプリがバックグラウンドの間は自動で一時停止
+- **音源(`assets/sounds/*.wav`)**: `scripts/make-sounds.mjs` で合成生成(完全自作=実質CC0)。`npm run sounds` で再生成・差し替え可能
+- **オーディオモード**: `playsInSilentMode:false`(iOSマナーモードを尊重)+ `interruptionMode:'mixWithOthers'`(他アプリの音楽と共存)
 
 ### キャリアプランとロードマップ(`src/store/roadmap.ts`)
 - せっていで **目標(自由記述)+重点領域+自動追加ON/OFF** を設定すると有効化
@@ -169,8 +181,10 @@ AppState {
 ✅ src/characters/CharacterView.tsx
 ✅ 依存インストール済み(Expo SDK 57, notifications/svg/view-shot/navigation ほか)
 ✅ src/store/warmup.ts          導入期のウォームアップ層(ストリーク<3は極小タスク1件・ゴール1固定)
-✅ src/sims/                     音声ロールプレイの台本+キーワード判定(6シナリオ・hearing/drive/negotiation)
+✅ src/sims/                     音声ロールプレイの台本+キーワード判定(15シナリオ・hearing9/drive3/negotiation3・ヒアリングを重点強化・intent.next/leadInで分岐可)
 ✅ src/voice/                    VoiceBridge(expo-speech TTS + expo-speech-recognition STT・テキスト退避)
+✅ src/sound/                    SoundBridge(expo-audio・効果音3種+ループBGM・設定連動・マナーモード尊重)
+✅ scripts/make-sounds.mjs       UIサウンドを合成生成(assets/sounds/*.wav・完全自作=実質CC0)
 ✅ src/components/SimRunner.tsx  ロールプレイ実行モーダル(台本選択→対話→完走で該当タスク完了)
 ✅ src/screens/PracticeScreen.tsx れんしゅうタブ(3領域のロールプレイをいつでも起動)
 ✅ src/store/missions.ts        デイリーミッション生成(導入期はウォームアップ、卒業後はラウンドロビン)

@@ -125,6 +125,7 @@ export function initialState(): AppState {
         { id: 'r4', hour: 21, minute: 0 },
       ],
       characterId: 'mame',
+      sound: { sfx: true, bgm: true }, // 効果音・BGMとも初期ON(どちらも設定で切替)
     },
   };
 }

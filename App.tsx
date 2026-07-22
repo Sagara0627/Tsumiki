@@ -22,6 +22,8 @@ import RecordsScreen from './src/screens/RecordsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { registerVoiceBridge } from './src/voice';
 import { createExpoVoice } from './src/voice/expoVoice';
+import { getSoundBridge, registerSoundBridge } from './src/sound';
+import { createExpoSound } from './src/sound/expoSound';
 import { colors, font, shadow } from './src/theme';
 
 // store 層 → 通知層の橋渡し(モジュール読み込み時に一度だけ)
@@ -32,6 +34,8 @@ registerNotificationBridge({
 });
 // UI 層 → 音声層の橋渡し(TTS/STT 実装を注入)
 registerVoiceBridge(createExpoVoice());
+// UI/store 層 → サウンド層の橋渡し(効果音・BGM 実装を注入)
+registerSoundBridge(createExpoSound());
 
 const Tab = createBottomTabNavigator();
 
@@ -65,6 +69,13 @@ function Root() {
     // 起動時に一度だけ実行したいので state は依存に含めない
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  // サウンド設定をブリッジへ反映(BGM の再生/停止もここで切り替わる)
+  const { sfx, bgm } = state.settings.sound;
+  useEffect(() => {
+    if (!ready) return;
+    getSoundBridge().applySettings({ sfx, bgm });
+  }, [ready, sfx, bgm]);
 
   if (!ready) {
     return (

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useApp } from '../store/AppContext';
 import { getCharacter } from '../characters';
+import { getSoundBridge } from '../sound';
 import AnimatedCharacter from '../characters/AnimatedCharacter';
 import { colors, font, radius } from '../theme';
 import { prefersReducedMotion } from './ui';
@@ -19,8 +20,9 @@ export default function CelebrationModal() {
   const [confetti, setConfetti] = useState(0);
   useEffect(() => {
     if (!current) return;
-    // お祝いごとに紙吹雪を打ち上げ直す
+    // お祝いごとに紙吹雪を打ち上げ直し、効果音を鳴らす
     setConfetti((c) => c + 1);
+    getSoundBridge().play('celebrate');
     if (prefersReducedMotion()) {
       scale.setValue(1);
       return;

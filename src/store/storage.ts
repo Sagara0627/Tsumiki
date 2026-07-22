@@ -25,6 +25,10 @@ export function normalize(raw: Partial<Omit<AppState, 'version'>> & { version?: 
       reminderTimes: Array.isArray(raw.settings?.reminderTimes)
         ? raw.settings!.reminderTimes
         : base.settings.reminderTimes,
+      sound: {
+        sfx: raw.settings?.sound?.sfx ?? base.settings.sound.sfx,
+        bgm: raw.settings?.sound?.bgm ?? base.settings.sound.bgm,
+      },
     },
   };
   // v1 → v2: キャリアプラン(目指す姿・重点領域・自動追加ON+優先アクションのタスク化)を投入

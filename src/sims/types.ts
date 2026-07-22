@@ -16,6 +16,10 @@ export interface SimIntent {
   reply: string;
   /** この意図を「達成」と見なすか(ターンの狙いを満たしたか)。false は許容だが物足りない返し */
   good: boolean;
+  /** 指定時、次に進むターンの id(通常は配列の次へ。話の先取りで以降のターンが不要になる場合の分岐用) */
+  next?: string;
+  /** 指定時、次のターンの say をこの文言で上書きする(直前の発話内容を受けて相手の切り出し方を変える) */
+  leadIn?: string;
 }
 
 export interface SimTurn {

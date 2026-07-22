@@ -8,6 +8,7 @@
     "@react-navigation/bottom-tabs": "^7.18.8",
     "@react-navigation/native": "^7.3.8",
     "expo": "~57.0.4",
+    "expo-audio": "~57.0.2",
     "expo-clipboard": "~57.0.0",
     "expo-device": "~57.0.0",
     "expo-document-picker": "~57.0.0",
@@ -35,7 +36,8 @@
     "ios": "expo run:ios",
     "ios:device": "bash scripts/ios-device.sh",
     "web": "expo start --web",
-    "icon": "node scripts/make-icon.mjs"
+    "icon": "node scripts/make-icon.mjs",
+    "sounds": "node scripts/make-sounds.mjs"
   },
   "private": true
 }
